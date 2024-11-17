@@ -54,6 +54,4 @@ Before starting, ensure you have the following installed on your system:
 ## **Contact**
 If you have questions or run into issues, feel free to contact leslie at leslielinzx@connect.hku.hk :)
 
----
 
-Let me know if you'd like to refine it further!
