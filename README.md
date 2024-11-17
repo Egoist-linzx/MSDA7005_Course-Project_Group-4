@@ -32,18 +32,6 @@ Before starting, ensure you have the following installed on your system:
 3. **Execute the Notebook**
    - In Jupyter Notebook, execute the code **cell by cell** to run the analysis.
 
----
-
-## **How to Run**
-1. Navigate to the folder containing the notebook in your terminal.
-2. Launch Jupyter Notebook:
-   ```bash
-   jupyter notebook
-   ```
-3. Open the `MSDA7005_Twitter Sentiment Analysis.ipynb` notebook.
-4. Execute the code cells sequentially.
-
----
 
 ## **Notes**
 - Make sure to run the installations (`wordcloud` and `scikit-learn`) in the same Python environment used by Jupyter Notebook.
