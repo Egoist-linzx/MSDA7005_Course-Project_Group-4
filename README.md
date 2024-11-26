@@ -28,8 +28,10 @@ Before starting, ensure you have the following installed on your system:
      pip install wordcloud
      pip install scikit-learn
      ```
-
-3. **Execute the Notebook**
+3. **Download the data file**
+   - Download the data file `train.csv` in the same folder as the `MSDA7005_Twitter Sentiment Analysis.ipynb` file.
+  
+4. **Execute the Notebook**
    - In Jupyter Notebook, execute the code **cell by cell** to run the analysis.
 
 
