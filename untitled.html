@@ -1,0 +1,6025 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>Dashboard - Service Performance - Klook</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1e88e5;
+      --primary-dark: #1565c0;
+      --primary-light: #42a5f5;
+      --secondary: #ff9800;
+      --success: #4caf50;
+      --warning: #ffc107;
+      --danger: #f44336;
+      --info: #1890ff;
+      --purple: #722ed1;
+      --orange: #fa8c16;
+      --light-bg: #f8f9fa;
+      --bg: #f5f7fa;
+      --card-bg: #fff;
+      --shadow: rgba(0, 0, 0, 0.08);
+      --border: #e0e0e0;
+      --text-primary: #333;
+      --text-secondary: #666;
+      --text-light: #999;
+      --card-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      --nav-width: 220px;
+      --topbar-height: 70px;
+      --transition: all 0.3s;
+      
+      /* Standardized chart dimensions */
+      --chart-height-sm: 200px;
+      --chart-height-md: 250px;
+      --chart-height-lg: 300px;
+      --chart-container-padding: 20px;
+    }
+    
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+      font-family: 'Noto Sans SC', sans-serif; 
+    }
+
+    body { 
+      background: var(--bg); 
+      color: var(--text-primary); 
+      display: flex;
+      min-height: 100vh; 
+      overflow-x: hidden;
+    }
+
+    /* 左侧导航 */
+    .sidebar-nav {
+      width: var(--nav-width);
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      color: white;
+      padding: 20px 0;
+      flex-shrink: 0;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+      z-index: 10;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      overflow-y: auto;
+    }
+    
+    .nav-header {
+      font-size: 24px;
+      font-weight: 700;
+      padding: 0 20px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      margin-bottom: 20px;
+    }
+    
+    nav a {
+      display: flex;
+      align-items: center;
+      padding: 14px 20px;
+      color: rgba(255,255,255,0.85);
+      text-decoration: none;
+      transition: all 0.3s;
+      position: relative;
+    }
+    
+    nav a:hover, nav a.active {
+      background: rgba(255,255,255,0.1);
+      color: white;
+    }
+    
+    nav a.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 4px;
+      background: var(--secondary);
+    }
+    
+    nav a .icon {
+      width: 30px;
+      font-size: 18px;
+    }
+    
+    nav a span {
+      font-size: 15px;
+      font-weight: 500;
+    }
+    
+    .submenu {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+      background: rgba(0,0,0,0.1);
+    }
+    
+    .submenu.active {
+      max-height: 200px;
+    }
+    
+    .submenu a {
+      padding-left: 50px;
+      font-size: 14px;
+    }
+
+    /* 顶部区域 */
+    .topbar {
+      background: white;
+      height: var(--topbar-height);
+      padding: 0 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      position: fixed;
+      top: 0;
+      left: var(--nav-width);
+      right: 0;
+      z-index: 5;
+    }
+    
+    .title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .right-section {
+      display: flex;
+      gap: 25px;
+    }
+    
+    .item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    
+    .item:hover {
+      color: var(--primary);
+    }
+    
+    .notifications {
+      position: relative;
+    }
+    
+    .badge {
+      position: absolute;
+      top: -8px;
+      right: -12px;
+      background: var(--danger);
+      color: white;
+      font-size: 10px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    /* 主容器 */
+    .main-content {
+      flex: 1;
+      margin-left: var(--nav-width);
+      max-width: calc(100% - var(--nav-width));
+    }
+    
+    .container {
+      padding: 20px;
+      padding-top: calc(var(--topbar-height) + 20px);
+    }
+    
+    /* 卡片通用样式 */
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: var(--card-shadow);
+      padding: 20px;
+      margin-bottom: 20px;
+      transition: transform 0.3s, box-shadow 0.3s;
+      overflow: visible;
+    }
+    
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+    
+    .card h2, .card h3 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+      color: var(--text-primary);
+    }
+    
+    .card h2 {
+      font-size: 18px;
+      border-bottom: 1px solid var(--light-bg);
+      padding-bottom: 12px;
+    }
+    
+    .card h3 {
+      font-size: 16px;
+    }
+
+    /* 面包屑 */
+    .breadcrumbs { 
+      font-size: 14px; 
+      margin-bottom: 16px; 
+      color: var(--text-secondary);
+    }
+    
+    .breadcrumbs a { 
+      color: var(--text-secondary); 
+      text-decoration: none;
+      transition: var(--transition);
+    }
+    
+    .breadcrumbs a:hover {
+      color: var(--primary);
+    }
+    
+    .breadcrumbs span { 
+      color: var(--text-primary);
+      font-weight: 500; 
+    }
+
+    /* Tooltip */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      cursor: help;
+    }
+    
+    .tt-text {
+      visibility: hidden;
+      width: 260px;
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 10px;
+      position: absolute;
+      z-index: 100;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 13px;
+      font-weight: normal;
+    }
+    
+    .tooltip:hover .tt-text {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    /* 筛选器样式 */
+    .filters-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-grow: 1;
+    }
+    
+    .filters-card label {
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    
+    .filters-card select, .filters-card input {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+      background: #fff;
+      transition: var(--transition);
+    }
+    
+    .filters-card select:focus, .filters-card input:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(30, 136, 229, 0.2);
+    }
+    
+    .filters-card .btn-search {
+      padding: 10px 20px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+    }
+    
+    .filters-card .btn-search:hover {
+      background: var(--primary-light);
+      box-shadow: 0 4px 8px rgba(30, 136, 229, 0.2);
+    }
+
+    /* 指标卡片 */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 15px;
+    }
+    
+    .metric-card {
+      padding: 18px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      position: relative;
+      background: #fff;
+      transition: var(--transition);
+    }
+    
+    .metric-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    }
+    
+    .metric-card h3 {
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+    }
+    
+    .metric-card .value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    
+    .metric-card .desc {
+      font-size: 13px;
+      color: var(--text-light);
+    }
+    
+    .metric-card .desc strong.success {
+      color: var(--success);
+    }
+    
+    .metric-card .desc strong.danger {
+      color: var(--danger);
+    }
+    
+    .metric-card .desc-change {
+      font-size: 13px;
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .metric-card .desc-change .down {
+      color: var(--success);
+    }
+    
+    .metric-card .desc-change .up {
+      color: var(--danger);
+    }
+    
+    .metric-comparisons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    
+    .comparison-item {
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: rgba(0,0,0,0.03);
+      padding: 3px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    /* 图表容器标准化 */
+    .chart-section {
+      margin-top: 30px;
+      overflow: visible;
+    }
+    
+    .chart-title {
+      text-align: center;
+      margin-bottom: 20px;
+      color: var(--text-secondary);
+      font-size: 16px;
+      font-weight: 500;
+    }
+    
+    .chart-container {
+      position: relative;
+      height: var(--chart-height-md);
+      width: 100%;
+      overflow: visible;
+    }
+    
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-top: 20px;
+    }
+
+    /* 表格样式 */
+    .table-container {
+      overflow-x: auto;
+      margin-top: 16px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    th {
+      background-color: var(--light-bg);
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    
+    tr:hover {
+      background-color: rgba(30, 136, 229, 0.05);
+    }
+    
+    tr:last-child td {
+      border-bottom: none;
+    }
+    
+    /* 响应式调整 */
+    @media (max-width: 1200px) {
+      .metric-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      
+      .chart-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    @media (max-width: 992px) {
+      .metric-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    @media (max-width: 768px) {
+      :root {
+        --nav-width: 0px;
+      }
+      
+      .sidebar-nav {
+        transform: translateX(-100%);
+      }
+      
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .topbar .right-section {
+        display: none;
+      }
+      
+      .main-content {
+        max-width: 100%;
+        margin-left: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 左侧导航 -->
+  <div class="sidebar-nav">
+    <div class="nav-header">Klook</div>
+    <nav class="nav">
+      <a href="#"><span class="icon"><i class="fas fa-home"></i></span><span>首页</span></a>
+      <a href="#"><span class="icon"><i class="fas fa-bullseye"></i></span><span>我的活动</span></a>
+      <a href="#"><span class="icon"><i class="fas fa-list"></i></span><span>订单管理</span></a>
+      <a href="#"><span class="icon"><i class="fas fa-ticket-alt"></i></span><span>兑换记录</span></a>
+      <a href="#"><span class="icon"><i class="fas fa-star"></i></span><span>评价</span></a>
+      <a href="#"><span class="icon"><i class="fas fa-file-invoice"></i></span><span>对账单</span></a>
+      <a href="#" class="has-submenu active"><span class="icon"><i class="fas fa-chart-line"></i></span><span>Dashboard</span></a>
+      <div class="submenu active">
+        <a href="#"><span class="icon"><i class="fas fa-chart-pie"></i></span><span>Booking Analysis</span></a>
+        <a href="#" class="active"><span class="icon"><i class="fas fa-search-dollar"></i></span><span>Service Performance</span></a>
+      </div>
+    </nav>
+  </div>
+
+  <!-- 顶部区域 -->
+  <div class="topbar">
+    <div class="left-section">
+      <div class="title">Dashboard / Service Performance</div>
+    </div>
+    <div class="right-section">
+      <div class="item"><i class="fas fa-comment"></i> <span>客服中心</span></div>
+      <div class="item notifications">
+        <i class="fas fa-bell"></i> <span>通知</span> <div class="badge">12</div>
+      </div>
+      <div class="item"><i class="fas fa-folder"></i> <span>资源中心</span></div>
+      <div class="item"><i class="fas fa-mobile-alt"></i> <span>下载 App</span></div>
+      <div class="item"><i class="fas fa-globe"></i> <span>繁体中文</span></div>
+      <div class="item"><i class="fas fa-user-circle"></i> <span>eas*@klook.com</span></div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="container">
+      <!-- 面包屑 -->
+      <div class="breadcrumbs">
+        <a href="#">Dashboard</a> / <span>Service Performance</span>
+      </div>
+
+      <!-- 筛选器 -->
+      <div class="card filters-card">
+        <div class="filter-group">
+          <label>时间段</label>
+          <input type="date" value="2025-05-25" id="date-start">
+        </div>
+        <div class="filter-group">
+          <label>&nbsp;</label>
+          <input type="date" value="2025-06-24" id="date-end">
+        </div>
+        <button class="btn-search">
+          <i class="fas fa-search"></i>
+          查询
+        </button>
+      </div>
+
+      <!-- 内容部分将在后续部分提供 -->
+    </div>
+    <!-- Booking Confirmation Performance -->
+<div class="card">
+  <h2><i class="fas fa-clock"></i> Booking Confirmation Performance（售前experience，pre-booking）</h2>
+  <div class="info-box">
+    <i class="fas fa-info-circle"></i> 商户售前响应效率直接影响转化率和客户体验，及时确认订单可提升客户信任度，减少订单流失，并影响平台流量分配权重
+  </div>
+  
+  <!-- 指标卡片 -->
+  <div class="metric-grid">
+    <div class="metric-card metric-selector" data-metric="confirmation-time">
+      <h3>Average Confirmation Time 
+        <span class="tooltip"><i class="fas fa-question-circle" style="color: var(--text-light); font-size: 12px;"></i>
+          <span class="tt-text">平均订单确认时长，支持行业percentile对比+行业average对比+自己同期对比</span>
+        </span>
+      </h3>
+      <div class="value">2.3小时</div>
+      <div class="desc">快速确认提升客户信任度，减少订单流失</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">行业排名：<strong style="color: var(--success);">前25%</strong></div>
+        <div class="comparison-item">行业均值：<strong>3.8小时</strong></div>
+        <div class="comparison-item">同期对比：<strong style="color: var(--success);">-0.5小时</strong></div>
+      </div>
+    </div>
+    
+    <div class="metric-card metric-selector" data-metric="sla-miss">
+      <h3>% Bookings not confirmed within SLA 
+        <span class="tooltip"><i class="fas fa-question-circle" style="color: var(--text-light); font-size: 12px;"></i>
+          <span class="tt-text">SLA内未确认订单比例，支持行业percentile对比+行业average对比+自己同期对比</span>
+        </span>
+      </h3>
+      <div class="value">8.2%</div>
+      <div class="desc">及时确认影响客户满意度和平台算法推荐</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">行业排名：<strong style="color: var(--warning);">前60%</strong></div>
+        <div class="comparison-item">行业均值：<strong>12.5%</strong></div>
+        <div class="comparison-item">同期对比：<strong style="color: var(--danger);">+1.2%</strong></div>
+      </div>
+    </div>
+    
+    <div class="metric-card metric-selector" data-metric="amount-loss">
+      <h3>Total Booking Amount not confirmed within SLA 
+        <span class="tooltip"><i class="fas fa-question-circle" style="color: var(--text-light); font-size: 12px;"></i>
+          <span class="tt-text">SLA外未确认订单金额，展示潜在损失，自己同期对比</span>
+        </span>
+      </h3>
+      <div class="value">$18,640</div>
+      <div class="desc">量化超时确认的直接经济损失</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">同期对比：<strong style="color: var(--danger);">+$3,210</strong></div>
+      </div>
+    </div>
+    
+    <div class="metric-card metric-selector" data-metric="time-distribution">
+      <h3>Booking Confirmation Hours Distribution 
+        <span class="tooltip"><i class="fas fa-question-circle" style="color: var(--text-light); font-size: 12px;"></i>
+          <span class="tt-text">确认时长分布（1小时内/1-5小时/5小时以上），支持自己同期对比</span>
+        </span>
+      </h3>
+      <div class="value">详情图表</div>
+      <div class="desc">帮助商户了解确认效率分布，识别改进空间</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">1小时内：<strong style="color: var(--success);">45%</strong></div>
+        <div class="comparison-item">1-5小时：<strong>38%</strong></div>
+        <div class="comparison-item">5小时以上：<strong style="color: var(--danger);">17%</strong></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 图表展示区域 -->
+  <div class="chart-section">
+    <h3 id="chart-title" class="chart-title">
+      Average Confirmation Time 趋势对比
+    </h3>
+    
+    <!-- 趋势线图表 -->
+    <div id="trend-chart-container" class="chart-container">
+      <canvas id="trendChart"></canvas>
+    </div>
+    
+    <!-- 甜甜圈图表 -->
+    <div id="doughnut-chart-container" class="chart-container" style="display: none;">
+      <div class="booking-chart-wrapper">
+        <div class="chart-doughnut">
+          <canvas id="doughnutChart"></canvas>
+        </div>
+        <div class="booking-legend">
+          <div class="legend-items">
+            <div class="legend-item">
+              <div class="legend-color" style="background: #4CAF50;"></div>
+              <span class="legend-label">1小时内确认</span>
+              <strong class="legend-value">45%</strong>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color" style="background: #FF9800;"></div>
+              <span class="legend-label">1-5小时确认</span>
+              <strong class="legend-value">38%</strong>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color" style="background: #F44336;"></div>
+              <span class="legend-label">5小时以上确认</span>
+              <strong class="legend-value">17%</strong>
+            </div>
+          </div>
+          <div class="legend-comparison">
+            <div class="legend-title">同期对比：</div>
+            <div class="legend-stats">
+              <span style="color: var(--success);">1小时内 +3%</span>
+              <span style="color: var(--warning);">1-5小时 -1%</span>
+              <span style="color: var(--danger);">5小时以上 -2%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- IM Reply Performance -->
+<div class="card">
+  <h2><i class="fas fa-comments"></i> IM Reply Performance（行前experience，post-booking）</h2>
+  <div class="info-box">
+    <i class="fas fa-info-circle"></i> 行前客服响应表现直接影响客户体验，快速响应能提升客户满意度，影响服务评分和平台推荐
+  </div>
+  
+  <!-- 指标卡片 -->
+  <div class="metric-grid">
+    <div class="metric-card im-metric-selector" data-im-metric="customers-served">
+      <h3>Number of customers replied/served
+        <span class="tooltip"><i class="fas fa-question-circle" style="color: var(--text-light); font-size: 12px;"></i>
+          <span class="tt-text">在所选时间周期内，客服实际回复或服务的独立客户总数</span>
+        </span>
+      </h3>
+      <div class="value">2,346</div>
+      <div class="desc">反映客服团队工作量和覆盖面</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">行业排名：<strong style="color: var(--success);">前20%</strong></div>
+        <div class="comparison-item">行业均值：<strong>1,892</strong></div>
+        <div class="comparison-item">同期对比：<strong style="color: var(--success);">+278</strong></div>
+      </div>
+    </div>
+    
+    <div class="metric-card im-metric-selector" data-im-metric="customers-percentage">
+      <h3>% of customers served
+        <span class="tooltip"><i class="fas fa-question-circle" style="color: var(--text-light); font-size: 12px;"></i>
+          <span class="tt-text">已回复/服务的客户数占所有发起咨询客户总数的百分比</span>
+        </span>
+      </h3>
+      <div class="value">87.5%</div>
+      <div class="desc">响应率越高，客户流失越低</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">行业排名：<strong style="color: var(--success);">前15%</strong></div>
+        <div class="comparison-item">行业均值：<strong>82.3%</strong></div>
+        <div class="comparison-item">同期对比：<strong style="color: var(--success);">+3.2%</strong></div>
+      </div>
+    </div>
+    
+    <div class="metric-card im-metric-selector" data-im-metric="reply-distribution">
+      <h3>IM Reply Distribution
+        <span class="tooltip"><i class="fas fa-question-circle" style="color: var(--text-light); font-size: 12px;"></i>
+          <span class="tt-text">IM回复时长分布（5分钟内/20分钟内/60分钟内）</span>
+        </span>
+      </h3>
+      <div class="value">分布图表</div>
+      <div class="desc">响应速度直接影响客户满意度</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">5分钟内：<strong style="color: var(--success);">42%</strong></div>
+        <div class="comparison-item">20分钟内：<strong>35%</strong></div>
+        <div class="comparison-item">60分钟内：<strong style="color: var(--danger);">23%</strong></div>
+      </div>
+    </div>
+    
+    <div class="metric-card im-metric-selector" data-im-metric="sla-24h-5min">
+      <h3>% IM Replied within SLA (in 24h) - 5mins
+        <span class="tooltip"><i class="fas fa-question-circle" style="color: var(--text-light); font-size: 12px;"></i>
+          <span class="tt-text">游客出发前24小时内，5分钟SLA范围内完成回复的IM占比</span>
+        </span>
+      </h3>
+      <div class="value">78.2%</div>
+      <div class="desc">衡量紧急咨询的快速响应能力</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">行业排名：<strong style="color: var(--success);">前30%</strong></div>
+        <div class="comparison-item">行业均值：<strong>65.8%</strong></div>
+        <div class="comparison-item">同期对比：<strong style="color: var(--success);">+5.3%</strong></div>
+      </div>
+    </div>
+    
+    <div class="metric-card im-metric-selector" data-im-metric="sla-24h-60min">
+      <h3>% IM Replied within SLA (in 24h) - 60mins
+        <span class="tooltip"><i class="fas fa-question-circle" style="color: var(--text-light); font-size: 12px;"></i>
+          <span class="tt-text">游客出发前24小时内，60分钟SLA范围内完成回复的IM占比</span>
+        </span>
+      </h3>
+      <div class="value">94.6%</div>
+      <div class="desc">衡量常规咨询的及时性</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">行业排名：<strong style="color: var(--success);">前25%</strong></div>
+        <div class="comparison-item">行业均值：<strong>88.9%</strong></div>
+        <div class="comparison-item">同期对比：<strong style="color: var(--success);">+2.1%</strong></div>
+      </div>
+    </div>
+    
+    <div class="metric-card im-metric-selector" data-im-metric="sla-overall-5min">
+      <h3>% IM Replied within SLA (overall) - 5mins
+        <span class="tooltip"><i class="fas fa-question-circle" style="color: var(--text-light); font-size: 12px;"></i>
+          <span class="tt-text">总体时段内，5分钟SLA范围内完成回复的IM占比</span>
+        </span>
+      </h3>
+      <div class="value">65.4%</div>
+      <div class="desc">反映长期快速响应表现</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">行业排名：<strong style="color: var(--warning);">前45%</strong></div>
+        <div class="comparison-item">行业均值：<strong>58.2%</strong></div>
+        <div class="comparison-item">同期对比：<strong style="color: var(--success);">+4.8%</strong></div>
+      </div>
+    </div>
+    
+    <div class="metric-card im-metric-selector" data-im-metric="sla-overall-60min">
+      <h3>% IM Replied within SLA (overall) - 60mins
+        <span class="tooltip"><i class="fas fa-question-circle" style="color: var(--text-light); font-size: 12px;"></i>
+          <span class="tt-text">总体时段内，60分钟SLA范围内完成回复的IM占比</span>
+        </span>
+      </h3>
+      <div class="value">89.7%</div>
+      <div class="desc">展示整体响应效率及高峰期承压能力</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">行业排名：<strong style="color: var(--success);">前35%</strong></div>
+        <div class="comparison-item">行业均值：<strong>83.4%</strong></div>
+        <div class="comparison-item">同期对比：<strong style="color: var(--success);">+3.9%</strong></div>
+      </div>
+    </div>
+    
+    <div class="metric-card im-metric-selector" data-im-metric="avg-reply-time">
+      <h3>Average IM Reply Time
+        <span class="tooltip"><i class="fas fa-question-circle" style="color: var(--text-light); font-size: 12px;"></i>
+          <span class="tt-text">平均IM回复时间，快速回复提升客户满意度</span>
+        </span>
+      </h3>
+      <div class="value">18.5分钟</div>
+      <div class="desc">影响服务评分和平台推荐</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">行业排名：<strong style="color: var(--success);">前28%</strong></div>
+        <div class="comparison-item">行业均值：<strong>24.3分钟</strong></div>
+        <div class="comparison-item">同期对比：<strong style="color: var(--success);">-2.8分钟</strong></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 图表展示区域 -->
+  <div class="chart-section">
+    <h3 id="im-chart-title" class="chart-title">
+      Number of customers replied/served 趋势对比
+    </h3>
+    
+    <!-- 趋势线图表 -->
+    <div id="im-trend-chart-container" class="chart-container">
+      <canvas id="imTrendChart"></canvas>
+    </div>
+    
+    <!-- 甜甜圈图表 -->
+    <div id="im-doughnut-chart-container" class="chart-container" style="display: none;">
+      <div class="im-chart-wrapper">
+        <div class="im-chart-doughnut">
+          <canvas id="imDoughnutChart"></canvas>
+        </div>
+        <div class="im-legend">
+          <div class="legend-items">
+            <div class="legend-item">
+              <div class="legend-color" style="background: #4CAF50;"></div>
+              <span class="legend-label">5分钟内回复</span>
+              <strong class="legend-value">42%</strong>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color" style="background: #FF9800;"></div>
+              <span class="legend-label">20分钟内回复</span>
+              <strong class="legend-value">35%</strong>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color" style="background: #F44336;"></div>
+              <span class="legend-label">60分钟内回复</span>
+              <strong class="legend-value">23%</strong>
+            </div>
+          </div>
+          <div class="legend-comparison">
+            <div class="legend-title">同期对比：</div>
+            <div class="legend-stats">
+              <span style="color: var(--success);">5分钟内 +5%</span>
+              <span style="color: var(--warning);">20分钟内 -2%</span>
+              <span style="color: var(--danger);">60分钟内 -3%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Fulfillment Quality Overview -->
+<div class="card">
+  <h2><i class="fas fa-shield-alt"></i> Fulfillment Quality Overview（行中指标，服务履约相关）</h2>
+  <div class="info-box">
+    <i class="fas fa-info-circle"></i> 服务履约质量直接影响客户满意度和平台信任，履约失败率是衡量服务质量的重要指标
+  </div>
+  
+  <!-- 指标卡片 -->
+  <div class="metric-grid">
+    <div class="metric-card ff-metric-selector" data-ff-metric="fulfillment-failure">
+      <h3>% Fulfillment Failure per Booking
+        <span class="tooltip"><i class="fas fa-question-circle"></i>
+          <span class="tt-text">总履约失败率（退款/赔偿的订单）</span>
+        </span>
+      </h3>
+      <div class="value">3.2%</div>
+      <div class="desc">影响客户满意度和平台信任</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">行业排名：<strong style="color: var(--success);">前35%</strong></div>
+        <div class="comparison-item">行业均值：<strong>4.1%</strong></div>
+        <div class="comparison-item">同期对比：<strong style="color: var(--success);">-0.8%</strong></div>
+      </div>
+    </div>
+    
+    <div class="metric-card ff-metric-selector" data-ff-metric="urgent-fulfillment-failure">
+      <h3>% Urgent Fulfillment Failure (FF) per Booking (24h)
+        <span class="tooltip"><i class="fas fa-question-circle"></i>
+          <span class="tt-text">如果退款或补偿在参与时间前24小时内发放，则FF被视为紧急</span>
+        </span>
+      </h3>
+      <div class="value">1.8%</div>
+      <div class="desc">紧急履约失败影响客户体验</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">行业排名：<strong style="color: var(--warning);">前42%</strong></div>
+        <div class="comparison-item">行业均值：<strong>2.3%</strong></div>
+        <div class="comparison-item">同期对比：<strong style="color: var(--success);">-0.5%</strong></div>
+      </div>
+    </div>
+    
+    <div class="metric-card ff-metric-selector" data-ff-metric="voucher-issued-urgent-ff">
+      <h3>Voucher Issued Urgent FF
+        <span class="tooltip"><i class="fas fa-question-circle"></i>
+          <span class="tt-text">紧急FF的进一步子集，商家已确认预订但履约仍然失败的情况</span>
+        </span>
+      </h3>
+      <div class="value">0.9%</div>
+      <div class="desc">商家确认后仍失败的情况</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">行业排名：<strong style="color: var(--success);">前28%</strong></div>
+        <div class="comparison-item">行业均值：<strong>1.4%</strong></div>
+        <div class="comparison-item">同期对比：<strong style="color: var(--success);">-0.3%</strong></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 图表展示区域 -->
+  <div class="chart-section">
+    <h3 id="ff-chart-title" class="chart-title">
+      % Fulfillment Failure per Booking 原因分布
+    </h3>
+    
+    <!-- 饼图和图例区域 -->
+    <div class="chart-container ff-chart-container">
+      <div class="ff-chart-wrapper">
+        <div class="ff-pie-section">
+          <canvas id="ffPieChart"></canvas>
+        </div>
+        
+        <div class="ff-legend-section">
+          <div id="ff-legend-content" class="ff-legend-content"></div>
+          
+          <div class="ff-suggestion-box">
+            <div class="suggestion-title">
+              <i class="fas fa-lightbulb"></i> 主要改进建议
+            </div>
+            <div class="suggestion-text">
+              优化预订流程，加强与供应商沟通，提升库存管理效率，建立更完善的风险预警机制
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Review Performance -->
+<div class="card">
+  <h2><i class="fas fa-star-half-alt"></i> Review Performance（行后/售后客户满意度）</h2>
+  <div class="info-box">
+    <i class="fas fa-info-circle"></i> 客户满意度反馈直接影响产品口碑和客户复购率，是评估服务质量的重要指标
+  </div>
+  
+  <!-- 指标卡片 -->
+  <div class="metric-grid">
+    <div class="metric-card review-metric-selector" data-review-metric="review-count">
+      <h3># of Reviews</h3>
+      <div class="value">12,567</div>
+      <div class="desc">评价数量反映客户参与度</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">同期对比：<strong style="color: var(--success);">+1,245</strong></div>
+      </div>
+    </div>
+    
+    <div class="metric-card review-metric-selector" data-review-metric="avg-score">
+      <h3>Average Review Score</h3>
+      <div class="value">4.6</div>
+      <div class="desc">评价分数影响产品排名</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">行业排名：<strong style="color: var(--success);">前25%</strong></div>
+        <div class="comparison-item">行业均值：<strong>4.2</strong></div>
+        <div class="comparison-item">同期对比：<strong style="color: var(--success);">+0.2</strong></div>
+      </div>
+    </div>
+    
+    <div class="metric-card review-metric-selector" data-review-metric="good-rate">
+      <h3>Good Review Rate (per booking)</h3>
+      <div class="value">92.3%</div>
+      <div class="desc">好评率影响产品推荐</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">行业排名：<strong style="color: var(--success);">前18%</strong></div>
+        <div class="comparison-item">行业均值：<strong>86.5%</strong></div>
+        <div class="comparison-item">同期对比：<strong style="color: var(--success);">+1.8%</strong></div>
+      </div>
+    </div>
+    
+    <div class="metric-card review-metric-selector" data-review-metric="bad-rate">
+      <h3>Bad Review Rate (per booking)</h3>
+      <div class="value">5.4%</div>
+      <div class="desc">差评率需要重点关注</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">行业排名：<strong style="color: var(--success);">前22%</strong></div>
+        <div class="comparison-item">行业均值：<strong>8.7%</strong></div>
+        <div class="comparison-item">同期对比：<strong style="color: var(--success);">-1.2%</strong></div>
+      </div>
+    </div>
+    
+    <div class="metric-card review-metric-selector" data-review-metric="serious-bad-rate">
+      <h3>Serious Bad Review Rate (per booking)</h3>
+      <div class="value">0.8%</div>
+      <div class="desc">触及行业红线的差评比例</div>
+      <div class="metric-comparisons">
+        <div class="comparison-item">行业排名：<strong style="color: var(--warning);">前38%</strong></div>
+        <div class="comparison-item">行业均值：<strong>1.2%</strong></div>
+        <div class="comparison-item">同期对比：<strong style="color: var(--success);">-0.3%</strong></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 图表展示区域 -->
+  <div class="chart-section">
+    <div class="chart-header">
+      <h3 id="review-chart-title" class="chart-title">Bad Review Reasons Distribution</h3>
+      <div id="review-breadcrumb" class="review-breadcrumb">
+        <span id="level1-breadcrumb" style="display: none;">
+          <a href="javascript:void(0)" onclick="returnToLevel1()"><i class="fas fa-arrow-left"></i> 返回一级原因</a>
+        </span>
+      </div>
+    </div>
+    
+    <!-- 图表容器 -->
+    <div class="chart-container review-chart-container">
+      <div class="review-chart-wrapper">
+        <!-- 图表部分 -->
+        <div class="review-chart-section">
+          <canvas id="reviewReasonChart"></canvas>
+        </div>
+        
+        <!-- 图例部分 -->
+        <div class="review-legend-section">
+          <div id="review-legend-content" class="review-legend-content"></div>
+          
+          <div class="review-suggestion-box">
+            <div class="suggestion-title">
+              <i class="fas fa-lightbulb"></i> 改进建议
+            </div>
+            <div class="suggestion-text" id="review-suggestion">
+              优化预订流程和产品信息透明度，提升服务人员培训，加强供应商质量管理
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Most Rated Activities -->
+<div class="card">
+  <h2><i class="fas fa-chart-line"></i> Most Rated Activities（主力产品下钻分析）</h2>
+  <div class="info-box">
+    <i class="fas fa-info-circle"></i> 重点产品表现分析，指导产品优化与资源分配，提升整体服务质量
+  </div>
+  
+  <!-- 数据表格 -->
+  <div class="table-wrapper">
+    <table class="data-table activities-table">
+      <thead>
+        <tr>
+          <th>Ranking</th>
+          <th>Activity Name</th>
+          <th># of Reviews</th>
+          <th>Average Review Score</th>
+          <th>Good Review Rate</th>
+          <th>Bad Review Rate</th>
+          <th>% Fulfillment Failure</th>
+          <th>% IM Replied within SLA (60min)</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="text-center">1</td>
+          <td>东京迪士尼乐园一日票</td>
+          <td class="text-center">3,452 <span class="trend-up">↑12%</span></td>
+          <td class="text-center">4.8 <span class="trend-up">↑0.2</span></td>
+          <td class="text-center">96.5% <span class="trend-up">↑1.2%</span></td>
+          <td class="text-center">2.1% <span class="trend-down">↓0.7%</span></td>
+          <td class="text-center">1.8% <span class="trend-down">↓0.5%</span></td>
+          <td class="text-center">92.3% <span class="trend-up">↑3.5%</span></td>
+          <td class="text-center"><a href="#diagnostics-benchmarking" class="view-more-link">View More</a></td>
+        </tr>
+        <tr>
+          <td class="text-center">2</td>
+          <td>巴黎卢浮宫博物馆门票</td>
+          <td class="text-center">3,126 <span class="trend-up">↑8%</span></td>
+          <td class="text-center">4.7 <span class="trend-up">↑0.1</span></td>
+          <td class="text-center">94.2% <span class="trend-up">↑0.8%</span></td>
+          <td class="text-center">3.5% <span class="trend-down">↓0.4%</span></td>
+          <td class="text-center">2.3% <span class="trend-down">↓0.3%</span></td>
+          <td class="text-center">88.6% <span class="trend-up">↑2.1%</span></td>
+          <td class="text-center"><a href="#diagnostics-benchmarking" class="view-more-link">View More</a></td>
+        </tr>
+        <tr>
+          <td class="text-center">3</td>
+          <td>纽约帝国大厦观景台门票</td>
+          <td class="text-center">2,845 <span class="trend-up">↑15%</span></td>
+          <td class="text-center">4.6 <span class="trend-same">→</span></td>
+          <td class="text-center">93.8% <span class="trend-up">↑0.5%</span></td>
+          <td class="text-center">3.8% <span class="trend-down">↓0.3%</span></td>
+          <td class="text-center">2.5% <span class="trend-down">↓0.2%</span></td>
+          <td class="text-center">86.2% <span class="trend-up">↑1.8%</span></td>
+          <td class="text-center"><a href="#diagnostics-benchmarking" class="view-more-link">View More</a></td>
+        </tr>
+        <tr>
+          <td class="text-center">4</td>
+          <td>伦敦眼观光门票</td>
+          <td class="text-center">2,754 <span class="trend-up">↑7%</span></td>
+          <td class="text-center">4.5 <span class="trend-up">↑0.1</span></td>
+          <td class="text-center">92.5% <span class="trend-up">↑0.7%</span></td>
+          <td class="text-center">4.2% <span class="trend-down">↓0.5%</span></td>
+          <td class="text-center">2.8% <span class="trend-down">↓0.4%</span></td>
+          <td class="text-center">85.7% <span class="trend-up">↑2.3%</span></td>
+          <td class="text-center"><a href="#diagnostics-benchmarking" class="view-more-link">View More</a></td>
+        </tr>
+        <tr>
+          <td class="text-center">5</td>
+          <td>香港迪士尼乐园一日票</td>
+          <td class="text-center">2,532 <span class="trend-up">↑10%</span></td>
+          <td class="text-center">4.7 <span class="trend-up">↑0.2</span></td>
+          <td class="text-center">95.1% <span class="trend-up">↑1.0%</span></td>
+          <td class="text-center">3.2% <span class="trend-down">↓0.6%</span></td>
+          <td class="text-center">2.1% <span class="trend-down">↓0.3%</span></td>
+          <td class="text-center">90.4% <span class="trend-up">↑2.8%</span></td>
+          <td class="text-center"><a href="#diagnostics-benchmarking" class="view-more-link">View More</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  
+  <div class="table-footer">
+    <button class="view-all-btn">
+      <i class="fas fa-list"></i> 查看全部活动
+    </button>
+    <div class="pagination">
+      <button class="page-btn active">1</button>
+      <button class="page-btn">2</button>
+      <button class="page-btn">3</button>
+      <span class="page-ellipsis">...</span>
+      <button class="page-btn next-btn">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Diagnostics & Benchmarking 模块 -->
+<div id="diagnostics-benchmarking" class="card diagnostics-card">
+  <h2><i class="fas fa-microscope"></i> Diagnostics & Benchmarking（问题产品/订单下钻分析）</h2>
+  <div class="info-box">
+    <i class="fas fa-info-circle"></i> 针对关键产品的全方位诊断分析，帮助识别问题根源并提供系统性改进方案
+  </div>
+  
+  <!-- 活动选择 -->
+  <div class="selection-panel">
+    <div class="selection-step active">
+      <div class="step-number">1</div>
+      <div class="step-content">
+        <div class="step-label">选择活动</div>
+        <div class="step-control">
+          <select id="activity-select" class="custom-select">
+            <option value="tokyo-disney">东京迪士尼乐园一日票</option>
+            <option value="louvre">巴黎卢浮宫博物馆门票</option>
+            <option value="empire">纽约帝国大厦观景台门票</option>
+            <option value="london-eye">伦敦眼观光门票</option>
+            <option value="hk-disney">香港迪士尼乐园一日票</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    
+    <div class="selection-step" id="dimension-selection-step">
+      <div class="step-number">2</div>
+      <div class="step-content">
+        <div class="step-label">选择分析维度</div>
+        <div class="step-control">
+          <div class="dimension-selector">
+            <button class="dimension-btn" data-dimension="booking">
+              <i class="fas fa-calendar-check"></i> 预订确认
+            </button>
+            <button class="dimension-btn" data-dimension="fulfillment">
+              <i class="fas fa-shield-alt"></i> 服务履约
+            </button>
+            <button class="dimension-btn" data-dimension="review">
+              <i class="fas fa-star-half-alt"></i> 评价表现
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 加载指示器 -->
+  <div id="loading-indicator" style="display: none;">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">正在加载数据...</div>
+  </div>
+   
+  
+  <!-- 各个维度的详细面板将在后续部分提供 -->
+  <div id="booking-panel" class="analysis-panel">
+  <div class="panel-header">
+    <h3 class="panel-title">预订确认分析 - <span id="booking-activity-title">东京迪士尼乐园一日票</span></h3>
+    <div class="panel-actions">
+      <button class="action-btn">
+        <i class="fas fa-bolt"></i> 优化确认流程
+      </button>
+      <button class="action-btn secondary">
+        <i class="fas fa-question-circle"></i> 查看最佳实践
+      </button>
+    </div>
+  </div>
+  
+  <!-- 指标卡片 -->
+  <div class="metrics-container">
+    <div class="metric-card-grid">
+      <div class="detailed-metric-card" id="confirmation-time-card">
+        <div class="metric-header">
+          <h4>Average Confirmation Time</h4>
+          <div class="metric-tools">
+            <span class="tooltip-trigger">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltip-content">平均订单确认时长，支持行业percentile对比+行业average对比+自己同期对比</span>
+            </span>
+            <button class="toggle-trend-btn" data-metric="confirmation-time">
+              <i class="fas fa-chart-line"></i>
+            </button>
+          </div>
+        </div>
+        <div class="metric-body">
+          <div class="primary-value">1.8小时</div>
+          <div class="secondary-value warning">
+            <i class="fas fa-arrow-up"></i> 同比上升0.3小时
+          </div>
+        </div>
+        <div class="metric-benchmarks">
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业排名</div>
+            <div class="benchmark-bar">
+              <div class="progress-bar warning" style="width: 40%;">低于行业中位</div>
+            </div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业均值: 1.2小时</div>
+            <div class="benchmark-value warning">+0.6小时</div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">同期: 1.5小时</div>
+            <div class="benchmark-value warning">+0.3小时</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="detailed-metric-card" id="sla-miss-card">
+        <div class="metric-header">
+          <h4>% Bookings not confirmed within SLA</h4>
+          <div class="metric-tools">
+            <span class="tooltip-trigger">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltip-content">SLA内未确认订单比例，支持行业percentile对比+行业average对比+自己同期对比</span>
+            </span>
+            <button class="toggle-trend-btn" data-metric="sla-miss">
+              <i class="fas fa-chart-line"></i>
+            </button>
+          </div>
+        </div>
+        <div class="metric-body">
+          <div class="primary-value">8.2%</div>
+          <div class="secondary-value success">
+            <i class="fas fa-arrow-down"></i> 同比下降1.3%
+          </div>
+        </div>
+        <div class="metric-benchmarks">
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业排名</div>
+            <div class="benchmark-bar">
+              <div class="progress-bar normal" style="width: 60%;">行业中等水平</div>
+            </div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业均值: 9.5%</div>
+            <div class="benchmark-value success">-1.3%</div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">同期: 9.5%</div>
+            <div class="benchmark-value success">-1.3%</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="detailed-metric-card" id="amount-loss-card">
+        <div class="metric-header">
+          <h4>Total Booking Amount not confirmed within SLA</h4>
+          <div class="metric-tools">
+            <span class="tooltip-trigger">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltip-content">SLA外未确认订单金额，展示潜在损失，自己同期对比</span>
+            </span>
+            <button class="toggle-trend-btn" data-metric="amount-loss">
+              <i class="fas fa-chart-line"></i>
+            </button>
+          </div>
+        </div>
+        <div class="metric-body">
+          <div class="primary-value">$18,640</div>
+          <div class="secondary-value danger">
+            <i class="fas fa-arrow-up"></i> 同比上升 $3,210
+          </div>
+        </div>
+        <div class="metric-benchmarks">
+          <div class="benchmark-item">
+            <div class="benchmark-label">超时损失占比</div>
+            <div class="benchmark-bar">
+              <div class="progress-bar warning" style="width: 65%;">收入损失 6.5%</div>
+            </div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">同期金额: $15,430</div>
+            <div class="benchmark-value danger">+$3,210</div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">单笔平均损失: $56</div>
+            <div class="benchmark-value">共计 333 笔订单</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="detailed-metric-card" id="time-distribution-card">
+        <div class="metric-header">
+          <h4>Booking Confirmation Hours Distribution</h4>
+          <div class="metric-tools">
+            <span class="tooltip-trigger">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltip-content">确认时长分布（1小时内/1-5小时/5小时以上），支持自己同期对比</span>
+            </span>
+            <button class="toggle-trend-btn" data-metric="time-distribution">
+              <i class="fas fa-chart-pie"></i>
+            </button>
+          </div>
+        </div>
+        <div class="metric-body distribution">
+          <div class="distribution-item success">
+            <div class="distribution-label">1小时内</div>
+            <div class="distribution-bar">
+              <div class="progress-bar success" style="width: 45%;"></div>
+            </div>
+            <div class="distribution-value">45%</div>
+          </div>
+          <div class="distribution-item normal">
+            <div class="distribution-label">1-5小时</div>
+            <div class="distribution-bar">
+              <div class="progress-bar normal" style="width: 38%;"></div>
+            </div>
+            <div class="distribution-value">38%</div>
+          </div>
+          <div class="distribution-item danger">
+            <div class="distribution-label">5小时以上</div>
+            <div class="distribution-bar">
+              <div class="progress-bar danger" style="width: 17%;"></div>
+            </div>
+            <div class="distribution-value">17%</div>
+          </div>
+        </div>
+        <div class="metric-benchmarks">
+          <div class="benchmark-item">
+            <div class="benchmark-label">同期对比</div>
+            <div class="benchmark-bar multi">
+              <span class="multi-value success">1小时内 +3%</span>
+              <span class="multi-value normal">1-5小时 -1%</span>
+              <span class="multi-value success">5小时以上 -2%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 图表区域 -->
+  <div id="booking-chart-area" class="chart-area">
+    <div class="chart-header">
+      <h4 id="booking-chart-title">Average Confirmation Time 趋势</h4>
+      <div class="chart-controls">
+        <div class="chart-period-selector">
+          <button class="period-btn active" data-period="week">周</button>
+          <button class="period-btn" data-period="month">月</button>
+          <button class="period-btn" data-period="quarter">季</button>
+          <button class="period-btn" data-period="year">年</button>
+        </div>
+      </div>
+    </div>
+    <div class="chart-container">
+      <canvas id="bookingTrendChart"></canvas>
+    </div>
+  </div>
+    <!-- 订单详情部分 -->
+  <div class="orders-section">
+    <div class="section-header">
+      <h4><i class="fas fa-list"></i> 预订订单详细分析</h4>
+      <div class="filter-actions">
+        <div class="filter-item">
+          <label>问题类型</label>
+          <select class="filter-select">
+            <option value="all">全部问题</option>
+            <option value="delay">确认延迟</option>
+            <option value="fail">确认失败</option>
+            <option value="auto-fail">自动确认失败</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label>日期范围</label>
+          <select class="filter-select">
+            <option value="7">最近7天</option>
+            <option value="30" selected>最近30天</option>
+            <option value="90">最近90天</option>
+          </select>
+        </div>
+        <button class="filter-btn"><i class="fas fa-search"></i> 查询</button>
+      </div>
+    </div>
+    
+    <div class="orders-table-container">
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th>订单号</th>
+            <th>预订时间</th>
+            <th>游玩日期</th>
+            <th>套餐</th>
+            <th>人数</th>
+            <th>金额</th>
+            <th>确认时长</th>
+            <th>订单状态</th>
+            <th>确认方式</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="#" class="order-link">TYO83625401</a></td>
+            <td>2023-04-10 14:23</td>
+            <td>2023-04-15</td>
+            <td>成人票 (平日)</td>
+            <td>2</td>
+            <td>¥1,580</td>
+            <td class="warning">3.2小时</td>
+            <td><span class="status-success">已确认</span></td>
+            <td>人工确认</td>
+            <td><button class="action-link" data-order="TYO83625401">查看详情</button></td>
+          </tr>
+          <tr>
+            <td><a href="#" class="order-link">TYO83712568</a></td>
+            <td>2023-04-12 09:45</td>
+            <td>2023-04-16</td>
+            <td>成人票 (假日)</td>
+            <td>4</td>
+            <td>¥3,600</td>
+            <td class="success">10分钟</td>
+            <td><span class="status-success">已确认</span></td>
+            <td>自动确认</td>
+            <td><button class="action-link" data-order="TYO83712568">查看详情</button></td>
+          </tr>
+          <tr>
+            <td><a href="#" class="order-link">TYO83759182</a></td>
+            <td>2023-04-13 18:37</td>
+            <td>2023-04-14</td>
+            <td>成人+儿童套票</td>
+            <td>3</td>
+            <td>¥2,450</td>
+            <td class="danger">5.1小时</td>
+            <td><span class="status-success">已确认</span></td>
+            <td>人工确认</td>
+            <td><button class="action-link" data-order="TYO83759182">查看详情</button></td>
+          </tr>
+          <tr>
+            <td><a href="#" class="order-link">TYO83826475</a></td>
+            <td>2023-04-15 11:08</td>
+            <td>2023-04-18</td>
+            <td>成人票 (平日)</td>
+            <td>2</td>
+            <td>¥1,580</td>
+            <td class="danger">未确认</td>
+            <td><span class="status-danger">确认超时</span></td>
+            <td>-</td>
+            <td><button class="action-link" data-order="TYO83826475">查看详情</button></td>
+          </tr>
+          <tr>
+            <td><a href="#" class="order-link">TYO83891234</a></td>
+            <td>2023-04-17 15:42</td>
+            <td>2023-04-20</td>
+            <td>成人票 (假日)</td>
+            <td>1</td>
+            <td>¥900</td>
+            <td class="success">8分钟</td>
+            <td><span class="status-success">已确认</span></td>
+            <td>自动确认</td>
+            <td><button class="action-link" data-order="TYO83891234">查看详情</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="table-footer">
+      <div class="showing-info">显示 1-5 共 124 条记录</div>
+      <div class="pagination">
+        <button class="page-btn" disabled><i class="fas fa-chevron-left"></i></button>
+        <button class="page-btn active">1</button>
+        <button class="page-btn">2</button>
+        <button class="page-btn">3</button>
+        <span class="page-ellipsis">...</span>
+        <button class="page-btn">25</button>
+        <button class="page-btn"><i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 诊断和建议部分 -->
+  <div class="diagnosis-section">
+    <h4><i class="fas fa-stethoscope"></i> 诊断结果与改进建议</h4>
+    <div class="diagnosis-content">
+      <div class="diagnosis-item warning">
+        <div class="diagnosis-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="diagnosis-text">
+          <div class="diagnosis-title">确认时间过长</div>
+          <div class="diagnosis-desc">平均确认时间为1.8小时，高于行业平均水平(1.2小时)，可能导致用户等待时间过长</div>
+        </div>
+        <div class="diagnosis-action">
+          <button class="quick-action-btn">
+            <i class="fas fa-lightbulb"></i> 查看解决方案
+          </button>
+        </div>
+      </div>
+      <div class="diagnosis-item success">
+        <div class="diagnosis-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="diagnosis-text">
+          <div class="diagnosis-title">确认成功率表现优秀</div>
+          <div class="diagnosis-desc">97.2%的确认成功率，超过92%的竞争对手，说明系统稳定性良好</div>
+        </div>
+        <div class="diagnosis-action">
+          <button class="quick-action-btn">
+            <i class="fas fa-chart-line"></i> 查看对比数据
+          </button>
+        </div>
+      </div>
+      <div class="diagnosis-item info">
+        <div class="diagnosis-icon">
+          <i class="fas fa-info-circle"></i>
+        </div>
+        <div class="diagnosis-text">
+          <div class="diagnosis-title">自动确认率有提升空间</div>
+          <div class="diagnosis-desc">自动确认率为75.3%，处于行业平均水平，建议提高自动化处理能力</div>
+        </div>
+        <div class="diagnosis-action">
+          <button class="quick-action-btn">
+            <i class="fas fa-tools"></i> 查看优化方法
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="resource-links">
+      <h5>相关资源</h5>
+      <div class="resource-list">
+        <a href="#" class="resource-link">
+          <i class="fas fa-file-alt"></i> 提高预订确认率最佳实践指南
+        </a>
+        <a href="#" class="resource-link">
+          <i class="fas fa-video"></i> 如何设置自动确认流程
+        </a>
+        <a href="#" class="resource-link">
+          <i class="fas fa-book"></i> 提高确认效率的技术方案
+        </a>
+      </div>
+    </div>
+  </div>
+
+<style>
+  /* 订单表格样式 */
+  .orders-section {
+    margin-top: 30px;
+    margin-bottom: 25px;
+  }
+  
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  
+  .section-header h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  
+  .filter-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .filter-item label {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  
+  .filter-select {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+    background: white;
+  }
+  
+  .filter-btn {
+    padding: 8px 15px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+  
+  .filter-btn:hover {
+    background: var(--primary-dark);
+  }
+  
+  .orders-table-container {
+    background: white;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    overflow-x: auto;
+    margin-bottom: 15px;
+  }
+  
+  .orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  
+  .orders-table th,
+  .orders-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  
+  .orders-table th {
+    background: var(--light-bg);
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+  
+  .orders-table tr:hover {
+    background: rgba(0,0,0,0.01);
+  }
+  
+  .orders-table tr:last-child td {
+    border-bottom: none;
+  }
+  
+  .order-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  
+  .order-link:hover {
+    text-decoration: underline;
+  }
+  
+  .success {
+    color: var(--success);
+  }
+  
+  .warning {
+    color: var(--warning);
+  }
+  
+  .danger {
+    color: var(--danger);
+  }
+  
+  .status-success {
+    background: rgba(76, 175, 80, 0.1);
+    color: #388E3C;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  
+  .status-danger {
+    background: rgba(244, 67, 54, 0.1);
+    color: #D32F2F;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  
+  .action-link {
+    background: none;
+    border: none;
+    color: var(--primary);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0;
+    text-decoration: underline;
+  }
+  
+  .action-link:hover {
+    color: var(--primary-dark);
+  }
+  
+  .table-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  
+  .showing-info {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  
+  .pagination {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .page-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    background: white;
+    color: var(--text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .page-btn:hover:not(:disabled) {
+    background: var(--light-bg);
+    color: var(--primary);
+  }
+  
+  .page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .page-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+  
+  .page-ellipsis {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    color: var(--text-secondary);
+  }
+  
+  /* 诊断部分样式 */
+  .diagnosis-section {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  
+  .diagnosis-section h4 {
+    margin: 0 0 20px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .diagnosis-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .diagnosis-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 15px;
+    background: var(--light-bg);
+    border-radius: 8px;
+    padding: 15px;
+    align-items: center;
+  }
+  
+  .diagnosis-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  
+  .diagnosis-item.warning .diagnosis-icon {
+    background: rgba(255, 152, 0, 0.1);
+    color: #F57C00;
+  }
+  
+  .diagnosis-item.success .diagnosis-icon {
+    background: rgba(76, 175, 80, 0.1);
+    color: #388E3C;
+  }
+  
+  .diagnosis-item.info .diagnosis-icon {
+    background: rgba(33, 150, 243, 0.1);
+    color: #1976D2;
+  }
+  
+  .diagnosis-text {
+    flex: 1;
+  }
+  
+  .diagnosis-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 5px;
+    font-size: 15px;
+  }
+  
+  .diagnosis-desc {
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  
+  .quick-action-btn {
+    background: white;
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  
+  .quick-action-btn:hover {
+    background: var(--light-bg);
+    border-color: var(--primary-light);
+  }
+  
+  /* 资源链接 */
+  .resource-links {
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+  }
+  
+  .resource-links h5 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin: 0 0 12px;
+  }
+  
+  .resource-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  
+  .resource-link {
+    text-decoration: none;
+    color: var(--primary);
+    font-size: 13px;
+    padding: 8px 12px;
+    background: rgba(30, 136, 229, 0.05);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+  }
+  
+  .resource-link:hover {
+    background: rgba(30, 136, 229, 0.1);
+  }
+  
+  /* 响应式调整 */
+  @media (max-width: 768px) {
+    .section-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .filter-actions {
+      width: 100%;
+    }
+    
+    .filter-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 5px;
+    }
+    
+    .filter-select {
+      width: 100%;
+    }
+    
+    .diagnosis-item {
+      grid-template-columns: auto 1fr;
+      grid-template-areas: 
+        "icon title"
+        "icon description"
+        "action action";
+      gap: 10px;
+    }
+    
+    .diagnosis-icon {
+      grid-area: icon;
+    }
+    
+    .diagnosis-text {
+      grid-area: description;
+    }
+    
+    .diagnosis-title {
+      grid-area: title;
+    }
+    
+    .diagnosis-action {
+      grid-area: action;
+    }
+  }
+</style>
+
+<script>
+  // 图表数据
+  const bookingChartData = {
+    'confirmation-time': {
+      weeks: {
+        labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+        current: [2.4, 2.1, 1.9, 2.2, 2.0, 1.8, 1.6],
+        previous: [2.8, 2.6, 2.5, 2.6, 2.3, 2.1, 1.9]
+      },
+      months: {
+        labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
+        current: [2.8, 2.6, 2.4, 2.3, 2.1, 2.0],
+        previous: [3.2, 3.0, 2.9, 2.8, 2.7, 2.6]
+      }
+    },
+    'sla-miss': {
+      weeks: {
+        labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+        current: [9.1, 8.7, 8.4, 8.5, 8.0, 7.8, 7.5],
+        previous: [10.2, 9.8, 9.6, 9.4, 9.1, 8.9, 8.7]
+      },
+      months: {
+        labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
+        current: [9.2, 8.8, 8.5, 8.2, 7.9, 7.6],
+        previous: [10.5, 10.2, 9.8, 9.5, 9.2, 8.9]
+      }
+    },
+    'amount-loss': {
+      weeks: {
+        labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+        current: [16800, 17200, 17500, 18100, 18300, 18640, 18500],
+        previous: [15200, 15600, 15900, 16100, 16300, 16500, 16400]
+      },
+      months: {
+        labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
+        current: [16200, 17800, 18200, 18640, 17900, 17200],
+        previous: [14800, 15200, 15600, 15430, 14900, 14600]
+      }
+    }
+  };
+
+  let currentTrendMetric = 'confirmation-time';
+  let currentPeriod = 'week';
+  let bookingTrendChart = null;
+
+  // 初始化趋势图表
+  function initBookingTrendChart() {
+    const ctx = document.getElementById('bookingTrendChart').getContext('2d');
+    const data = bookingChartData[currentTrendMetric][currentPeriod === 'week' ? 'weeks' : 'months'];
+    
+    bookingTrendChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.labels,
+        datasets: [{
+          label: '本期数据',
+          data: data.current,
+          borderColor: '#1e88e5',
+          backgroundColor: 'rgba(30, 136, 229, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4
+        }, {
+          label: '同期数据',
+          data: data.previous,
+          borderColor: '#ff9800',
+          backgroundColor: 'rgba(255, 152, 0, 0.1)',
+          borderWidth: 2,
+          borderDash: [5, 5],
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+            title: {
+              display: true,
+              text: currentTrendMetric === 'confirmation-time' ? '确认时长（小时）' : 
+                    currentTrendMetric === 'sla-miss' ? '未确认比例（%）' : '损失金额（$）'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 更新趋势图表数据
+  function updateBookingTrendChart() {
+    const data = bookingChartData[currentTrendMetric][currentPeriod === 'week' ? 'weeks' : 'months'];
+    
+    // 更新标题
+    document.getElementById('booking-chart-title').textContent = 
+      currentTrendMetric === 'confirmation-time' ? 'Average Confirmation Time 趋势' : 
+      currentTrendMetric === 'sla-miss' ? '% Bookings not confirmed within SLA 趋势' :
+      'Total Booking Amount not confirmed within SLA 趋势';
+    
+    // 更新数据
+    bookingTrendChart.data.labels = data.labels;
+    bookingTrendChart.data.datasets[0].data = data.current;
+    bookingTrendChart.data.datasets[1].data = data.previous;
+    
+    // 更新Y轴标题
+    bookingTrendChart.options.scales.y.title.text = 
+      currentTrendMetric === 'confirmation-time' ? '确认时长（小时）' : 
+      currentTrendMetric === 'sla-miss' ? '未确认比例（%）' : '损失金额（$）';
+    
+    bookingTrendChart.update();
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // 初始化趋势图表
+    if (document.getElementById('bookingTrendChart')) {
+      initBookingTrendChart();
+      
+      // 绑定指标卡片点击事件
+      document.querySelectorAll('.toggle-trend-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          currentTrendMetric = this.getAttribute('data-metric');
+          updateBookingTrendChart();
+        });
+      });
+      
+      // 绑定时间周期按钮点击事件
+      document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          
+          currentPeriod = this.getAttribute('data-period');
+          updateBookingTrendChart();
+        });
+      });
+    }
+  });
+</script>
+</div>
+
+<style>
+  /* 面板头部样式 */
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  
+  /* 指标卡网格 */
+  .metric-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+  
+  /* 详细指标卡样式 */
+  .detailed-metric-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .detailed-metric-card:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+  }
+  
+  .metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+  }
+  
+  .metric-header h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+  
+  .metric-tools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .tooltip-trigger {
+    position: relative;
+    cursor: help;
+    color: var(--text-light);
+  }
+  
+  .tooltip-content {
+    visibility: hidden;
+    width: 250px;
+    background: rgba(0,0,0,0.85);
+    color: white;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px 10px;
+    position: absolute;
+    z-index: 100;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 12px;
+    font-weight: normal;
+    white-space: normal;
+    line-height: 1.4;
+  }
+  
+  .tooltip-trigger:hover .tooltip-content {
+    visibility: visible;
+    opacity: 1;
+  }
+  
+  .toggle-trend-btn {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 3px;
+    transition: color 0.2s;
+  }
+  
+  .toggle-trend-btn:hover {
+    color: var(--primary);
+  }
+  
+  .metric-body {
+    margin-bottom: 15px;
+  }
+  
+  .primary-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 5px;
+  }
+  
+  .secondary-value {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .secondary-value.success { color: var(--success); }
+  .secondary-value.warning { color: var(--warning); }
+  .secondary-value.danger { color: var(--danger); }
+  .secondary-value.info { color: var(--info); }
+  
+  .metric-body.distribution {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .distribution-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+  }
+  
+  .distribution-label {
+    width: 70px;
+    flex-shrink: 0;
+    color: var(--text-secondary);
+  }
+  
+  .distribution-bar {
+    flex: 1;
+    height: 8px;
+    background: rgba(0,0,0,0.05);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  
+  .distribution-value {
+    width: 40px;
+    text-align: right;
+    font-weight: 500;
+  }
+  
+  .distribution-item.success .distribution-value { color: var(--success); }
+  .distribution-item.normal .distribution-value { color: var(--text-primary); }
+  .distribution-item.danger .distribution-value { color: var(--danger); }
+  
+  .metric-benchmarks {
+    margin-top: auto;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
+  
+  .benchmark-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  
+  .benchmark-item:last-child {
+    margin-bottom: 0;
+  }
+  
+  .benchmark-label {
+    color: var(--text-secondary);
+  }
+  
+  .benchmark-bar {
+    width: 60%;
+    height: 24px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .progress-bar {
+    height: 6px;
+    border-radius: 3px;
+    color: white;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    white-space: nowrap;
+  }
+  
+  .progress-bar.success { background: var(--success); }
+  .progress-bar.warning { background: var(--warning); }
+  .progress-bar.danger { background: var(--danger); }
+  .progress-bar.normal { background: var(--primary); }
+  
+  .benchmark-value {
+    font-weight: 500;
+  }
+  
+  .benchmark-value.success { color: var(--success); }
+  .benchmark-value.warning { color: var(--warning); }
+  .benchmark-value.danger { color: var(--danger); }
+  
+  .benchmark-bar.multi {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .multi-value {
+    font-size: 12px;
+  }
+  
+  .multi-value.success { color: var(--success); }
+  .multi-value.normal { color: var(--text-primary); }
+  .multi-value.danger { color: var(--danger); }
+  
+  /* 图表区域 */
+  .chart-area {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    border: 1px solid var(--border);
+    margin-bottom: 25px;
+  }
+  
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  
+  .chart-header h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+  
+  .chart-period-selector {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  
+  .period-btn {
+    background: white;
+    border: none;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .period-btn:not(:last-child) {
+    border-right: 1px solid var(--border);
+  }
+  
+  .period-btn:hover {
+    background: var(--light-bg);
+  }
+  
+  .period-btn.active {
+    background: var(--primary);
+    color: white;
+  }
+  
+  .chart-container {
+    height: 300px;
+    position: relative;
+  }
+  
+  /* 辅助样式 */
+  .action-btn {
+    padding: 8px 15px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .action-btn:hover {
+    background: var(--primary-dark);
+  }
+  
+  .action-btn.secondary {
+    background: white;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+  
+  .action-btn.secondary:hover {
+    background: var(--light-bg);
+    color: var(--text-primary);
+  }
+  
+  /* 响应式调整 */
+  @media (max-width: 768px) {
+    .panel-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .panel-actions {
+      display: flex;
+      width: 100%;
+      gap: 10px;
+    }
+    
+    .action-btn {
+      flex: 1;
+      justify-content: center;
+    }
+    
+    .chart-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .benchmark-bar {
+      width: 50%;
+    }
+  }
+</style>
+
+  <div id="fulfillment-panel" class="analysis-panel">
+  <div class="panel-header">
+    <h3 class="panel-title">服务履约分析 - <span id="fulfillment-activity-title">东京迪士尼乐园一日票</span></h3>
+    <div class="panel-actions">
+      <button class="action-btn">
+        <i class="fas fa-bolt"></i> 优化履约流程
+      </button>
+      <button class="action-btn secondary">
+        <i class="fas fa-question-circle"></i> 查看最佳实践
+      </button>
+    </div>
+  </div>
+  
+  <!-- 指标卡片 -->
+  <div class="metrics-container">
+    <div class="metric-card-grid">
+      <div class="detailed-metric-card" id="ff-failure-card">
+        <div class="metric-header">
+          <h4>% Fulfillment Failure per Booking</h4>
+          <div class="metric-tools">
+            <span class="tooltip-trigger">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltip-content">总履约失败率（退款/赔偿的订单），支持行业percentile对比+行业average对比+自己同期对比</span>
+            </span>
+            <button class="toggle-trend-btn" data-metric="ff-failure">
+              <i class="fas fa-chart-pie"></i>
+            </button>
+          </div>
+        </div>
+        <div class="metric-body">
+          <div class="primary-value">1.8%</div>
+          <div class="secondary-value success">
+            <i class="fas fa-arrow-down"></i> 同比下降0.5%
+          </div>
+        </div>
+        <div class="metric-benchmarks">
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业排名</div>
+            <div class="benchmark-bar">
+              <div class="progress-bar success" style="width: 78%;">超越78%竞对</div>
+            </div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业均值: 3.2%</div>
+            <div class="benchmark-value success">-1.4%</div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">同期: 2.3%</div>
+            <div class="benchmark-value success">-0.5%</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="detailed-metric-card" id="urgent-ff-card">
+        <div class="metric-header">
+          <h4>% Urgent Fulfillment Failure (FF) per Booking (24h)</h4>
+          <div class="metric-tools">
+            <span class="tooltip-trigger">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltip-content">如果退款或补偿在参与时间前24小时内发放，则FF被视为紧急，而不是基于活动完成时间</span>
+            </span>
+            <button class="toggle-trend-btn" data-metric="urgent-ff">
+              <i class="fas fa-chart-pie"></i>
+            </button>
+          </div>
+        </div>
+        <div class="metric-body">
+          <div class="primary-value">0.7%</div>
+          <div class="secondary-value success">
+            <i class="fas fa-arrow-down"></i> 同比下降0.2%
+          </div>
+        </div>
+        <div class="metric-benchmarks">
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业排名</div>
+            <div class="benchmark-bar">
+              <div class="progress-bar success" style="width: 82%;">超越82%竞对</div>
+            </div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业均值: 1.5%</div>
+            <div class="benchmark-value success">-0.8%</div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">同期: 0.9%</div>
+            <div class="benchmark-value success">-0.2%</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="detailed-metric-card" id="voucher-ff-card">
+        <div class="metric-header">
+          <h4>Voucher Issued Urgent FF</h4>
+          <div class="metric-tools">
+            <span class="tooltip-trigger">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltip-content">紧急FF的进一步子集。这些是商家已经确认预订，但履约仍然失败的情况</span>
+            </span>
+            <button class="toggle-trend-btn" data-metric="voucher-ff">
+              <i class="fas fa-chart-pie"></i>
+            </button>
+          </div>
+        </div>
+        <div class="metric-body">
+          <div class="primary-value">0.3%</div>
+          <div class="secondary-value success">
+            <i class="fas fa-arrow-down"></i> 同比下降0.1%
+          </div>
+        </div>
+        <div class="metric-benchmarks">
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业排名</div>
+            <div class="benchmark-bar">
+              <div class="progress-bar success" style="width: 90%;">超越90%竞对</div>
+            </div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业均值: 0.7%</div>
+            <div class="benchmark-value success">-0.4%</div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">同期: 0.4%</div>
+            <div class="benchmark-value success">-0.1%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 图表区域 -->
+  <div id="fulfillment-chart-area" class="chart-area">
+    <div class="chart-header">
+      <h4 id="fulfillment-chart-title">% Fulfillment Failure per Booking 原因分布</h4>
+      <div class="chart-controls">
+        <div class="chart-legend-toggle">
+          <button class="legend-btn active" data-show="true">
+            <i class="fas fa-list"></i> 显示图例
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="chart-container fulfillment-chart">
+      <div class="chart-wrapper">
+        <div class="chart-canvas-container">
+          <canvas id="fulfillmentPieChart"></canvas>
+        </div>
+        <div class="chart-legend-container">
+          <div id="fulfillment-chart-legend" class="chart-legend"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+    <!-- 订单详情部分 -->
+  <div class="orders-section">
+    <div class="section-header">
+      <h4><i class="fas fa-exclamation-circle"></i> 履约问题订单分析</h4>
+      <div class="filter-actions">
+        <div class="filter-item">
+          <label>问题类型</label>
+          <select class="filter-select">
+            <option value="all">全部问题</option>
+            <option value="stock">库存不足</option>
+            <option value="closure">临时关闭</option>
+            <option value="connection">连接问题</option>
+            <option value="redemption">兑换失败</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label>紧急程度</label>
+          <select class="filter-select">
+            <option value="all">全部</option>
+            <option value="urgent">紧急(24h)</option>
+            <option value="voucher">券已发放</option>
+            <option value="normal">非紧急</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label>日期范围</label>
+          <select class="filter-select">
+            <option value="7">最近7天</option>
+            <option value="30" selected>最近30天</option>
+            <option value="90">最近90天</option>
+          </select>
+        </div>
+        <button class="filter-btn"><i class="fas fa-search"></i> 查询</button>
+      </div>
+    </div>
+    
+    <div class="orders-table-container">
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th>订单号</th>
+            <th>游玩日期</th>
+            <th>套餐</th>
+            <th>人数</th>
+            <th>失败时间</th>
+            <th>失败类型</th>
+            <th>失败原因</th>
+            <th>解决方案</th>
+            <th>解决时长</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="#" class="order-link">TYO83456789</a></td>
+            <td>2023-04-12</td>
+            <td>成人票 (假日)</td>
+            <td>3</td>
+            <td>2023-04-11 10:23</td>
+            <td><span class="tag tag-urgent">紧急FF</span></td>
+            <td>临时闭园维护</td>
+            <td>全额退款</td>
+            <td>1.5小时</td>
+            <td><button class="action-link" data-order="TYO83456789">查看详情</button></td>
+          </tr>
+          <tr>
+            <td><a href="#" class="order-link">TYO83567890</a></td>
+            <td>2023-04-14</td>
+            <td>成人+儿童套票</td>
+            <td>4</td>
+            <td>2023-04-13 16:45</td>
+            <td><span class="tag tag-normal">普通FF</span></td>
+            <td>票券兑换失败</td>
+            <td>重新出票</td>
+            <td>3.2小时</td>
+            <td><button class="action-link" data-order="TYO83567890">查看详情</button></td>
+          </tr>
+          <tr>
+            <td><a href="#" class="order-link">TYO83678901</a></td>
+            <td>2023-04-15</td>
+            <td>成人票 (平日)</td>
+            <td>2</td>
+            <td>2023-04-14 23:10</td>
+            <td><span class="tag tag-urgent">紧急FF</span></td>
+            <td>系统连接问题</td>
+            <td>代金券补偿</td>
+            <td>2.8小时</td>
+            <td><button class="action-link" data-order="TYO83678901">查看详情</button></td>
+          </tr>
+          <tr>
+            <td><a href="#" class="order-link">TYO83789012</a></td>
+            <td>2023-04-18</td>
+            <td>成人票 (平日)</td>
+            <td>1</td>
+            <td>2023-04-16 08:37</td>
+            <td><span class="tag tag-normal">普通FF</span></td>
+            <td>信息不完整</td>
+            <td>补充信息</td>
+            <td>5.5小时</td>
+            <td><button class="action-link" data-order="TYO83789012">查看详情</button></td>
+          </tr>
+          <tr>
+            <td><a href="#" class="order-link">TYO83890123</a></td>
+            <td>2023-04-20</td>
+            <td>成人票 (假日)</td>
+            <td>5</td>
+            <td>2023-04-19 14:28</td>
+            <td><span class="tag tag-voucher">券已发放</span></td>
+            <td>商家临时缺货</td>
+            <td>代金券+折扣</td>
+            <td>1.2小时</td>
+            <td><button class="action-link" data-order="TYO83890123">查看详情</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="table-footer">
+      <div class="showing-info">显示 1-5 共 43 条记录</div>
+      <div class="pagination">
+        <button class="page-btn" disabled><i class="fas fa-chevron-left"></i></button>
+        <button class="page-btn active">1</button>
+        <button class="page-btn">2</button>
+        <button class="page-btn">3</button>
+        <span class="page-ellipsis">...</span>
+        <button class="page-btn">9</button>
+        <button class="page-btn"><i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 诊断和建议部分 -->
+  <div class="diagnosis-section">
+    <h4><i class="fas fa-stethoscope"></i> 诊断结果与改进建议</h4>
+    <div class="diagnosis-content">
+      <div class="diagnosis-item success">
+        <div class="diagnosis-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="diagnosis-text">
+          <div class="diagnosis-title">履约表现优秀</div>
+          <div class="diagnosis-desc">1.8%的履约失败率，优于行业平均(3.2%)，表明产品服务质量可靠</div>
+        </div>
+        <div class="diagnosis-action">
+          <button class="quick-action-btn">
+            <i class="fas fa-chart-line"></i> 查看趋势
+          </button>
+        </div>
+      </div>
+      <div class="diagnosis-item info">
+        <div class="diagnosis-icon">
+          <i class="fas fa-info-circle"></i>
+        </div>
+        <div class="diagnosis-text">
+          <div class="diagnosis-title">主要履约失败原因集中</div>
+          <div class="diagnosis-desc">库存不足和临时闭园是主要失败原因，可通过加强库存管理和提前信息同步减少影响</div>
+        </div>
+        <div class="diagnosis-action">
+          <button class="quick-action-btn">
+            <i class="fas fa-tools"></i> 优化方案
+          </button>
+        </div>
+      </div>
+      <div class="diagnosis-item warning">
+        <div class="diagnosis-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="diagnosis-text">
+          <div class="diagnosis-title">券已发放紧急失败可进一步优化</div>
+          <div class="diagnosis-desc">虽然比例低(0.3%)，但已发券失败会造成严重客户体验问题，需建立预警机制</div>
+        </div>
+        <div class="diagnosis-action">
+          <button class="quick-action-btn">
+            <i class="fas fa-cogs"></i> 预警设置
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 最佳实践建议 -->
+    <div class="best-practices-section">
+      <h5><i class="fas fa-lightbulb"></i> 最佳实践建议</h5>
+      <div class="practices-grid">
+        <div class="practice-item">
+          <div class="practice-icon">
+            <i class="fas fa-warehouse"></i>
+          </div>
+          <div class="practice-content">
+            <div class="practice-title">加强库存管理</div>
+            <div class="practice-desc">建立库存预警系统，定期与供应商同步可用库存，防止超卖</div>
+            <a href="#" class="practice-link">查看详细指南</a>
+          </div>
+        </div>
+        <div class="practice-item">
+          <div class="practice-icon">
+            <i class="fas fa-sync-alt"></i>
+          </div>
+          <div class="practice-content">
+            <div class="practice-title">自动化补偿机制</div>
+            <div class="practice-desc">针对紧急履约失败，设置自动化补偿流程，提高客户满意度</div>
+            <a href="#" class="practice-link">设置自动补偿</a>
+          </div>
+        </div>
+        <div class="practice-item">
+          <div class="practice-icon">
+            <i class="fas fa-comment-alt"></i>
+          </div>
+          <div class="practice-content">
+            <div class="practice-title">提前信息同步</div>
+            <div class="practice-desc">与景点建立信息同步渠道，提前获取闭园、限制入场等信息</div>
+            <a href="#" class="practice-link">查看配置方法</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 资源链接 -->
+    <div class="resource-links">
+      <h5>相关资源</h5>
+      <div class="resource-list">
+        <a href="#" class="resource-link">
+          <i class="fas fa-file-alt"></i> 如何降低履约失败率
+        </a>
+        <a href="#" class="resource-link">
+          <i class="fas fa-video"></i> 库存管理最佳实践
+        </a>
+        <a href="#" class="resource-link">
+          <i class="fas fa-book"></i> 高效处理紧急履约问题
+        </a>
+        <a href="#" class="resource-link">
+          <i class="fas fa-tools"></i> 设置库存预警系统
+        </a>
+      </div>
+    </div>
+  </div>
+
+<style>
+  /* 履约分析专用样式 */
+  .tag {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  
+  .tag-urgent {
+    background: rgba(244, 67, 54, 0.1);
+    color: #D32F2F;
+  }
+  
+  .tag-normal {
+    background: rgba(255, 152, 0, 0.1);
+    color: #F57C00;
+  }
+  
+  .tag-voucher {
+    background: rgba(156, 39, 176, 0.1);
+    color: #7B1FA2;
+  }
+  
+  /* 最佳实践部分样式 */
+  .best-practices-section {
+    margin-top: 25px;
+    background: var(--light-bg);
+    border-radius: 8px;
+    padding: 20px;
+  }
+  
+  .best-practices-section h5 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .practices-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+  }
+  
+  .practice-item {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    gap: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .practice-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  
+  .practice-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(30, 136, 229, 0.1);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  
+  .practice-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  
+  .practice-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+  
+  .practice-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  
+  .practice-link {
+    font-size: 12px;
+    color: var(--primary);
+    text-decoration: none;
+    margin-top: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  .practice-link:hover {
+    text-decoration: underline;
+  }
+  
+  /* 响应式调整 */
+  @media (max-width: 768px) {
+    .practices-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</div>
+
+<style>
+  .fulfillment-chart {
+    height: 350px;
+  }
+  
+  .chart-wrapper {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    gap: 20px;
+  }
+  
+  .chart-canvas-container {
+    flex: 0 0 280px;
+    height: 100%;
+    position: relative;
+  }
+  
+  .chart-legend-container {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 15px;
+  }
+  
+  .chart-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+    cursor: pointer;
+  }
+  
+  .legend-item:hover {
+    background-color: var(--light-bg);
+  }
+  
+  .legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    margin-right: 10px;
+    flex-shrink: 0;
+  }
+  
+  .legend-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    flex: 1;
+  }
+  
+  .legend-value {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    min-width: 45px;
+    text-align: right;
+  }
+  
+  .legend-btn {
+    padding: 6px 12px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .legend-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+  
+  @media (max-width: 768px) {
+    .chart-wrapper {
+      flex-direction: column;
+    }
+    
+    .chart-canvas-container {
+      width: 100%;
+      height: 250px;
+      max-width: 100%;
+      flex: auto;
+    }
+    
+    .chart-legend-container {
+      max-height: 200px;
+    }
+  }
+</style>
+
+<script>
+  // 履约失败原因数据
+  const fulfillmentPieData = {
+    'ff-failure': {
+      title: '% Fulfillment Failure per Booking 原因分布',
+      labels: [
+        'Other booking / redemption issues',
+        'Fully booked / Out of stock',
+        'Closure / No operation at the time',
+        'Booking connection issues',
+        'Operator rejected the ticket',
+        'Confirmation / Delivery time is too long',
+        'Not enough participants',
+        'Out of operator coverage / service area',
+        'Unclear / misleading / missing info'
+      ],
+      data: [25, 20, 18, 15, 12, 10, 8, 6, 4],
+      colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#F7DC6F', '#BB8FCE', '#85C1E9', '#58D68D', '#F8C471', '#EC7063']
+    },
+    'urgent-ff': {
+      title: '% Urgent Fulfillment Failure (FF) per Booking (24h) 原因分布',
+      labels: [
+        'Fully booked / Out of stock',
+        'Closure / No operation at the time',
+        'Other booking / redemption issues',
+        'Booking connection issues',
+        'Operator rejected the ticket',
+        'Confirmation / Delivery time is too long',
+        'Not enough participants',
+        'Out of operator coverage / service area'
+      ],
+      data: [30, 25, 20, 12, 8, 3, 2, 1],
+      colors: ['#4ECDC4', '#45B7D1', '#FF6B6B', '#F7DC6F', '#BB8FCE', '#85C1E9', '#58D68D', '#F8C471']
+    },
+    'voucher-ff': {
+      title: 'Voucher Issued Urgent FF 原因分布',
+      labels: [
+        'Closure / No operation at the time',
+        'Fully booked / Out of stock',
+        'Other booking / redemption issues',
+        'Operator rejected the ticket',
+        'Booking connection issues',
+        'Not enough participants',
+        'Out of operator coverage / service area'
+      ],
+      data: [35, 28, 18, 12, 5, 2, 1],
+      colors: ['#45B7D1', '#4ECDC4', '#FF6B6B', '#BB8FCE', '#F7DC6F', '#58D68D', '#F8C471']
+    }
+  };
+
+  // 当前选中的指标
+  let currentFfMetric = 'ff-failure';
+  let fulfillmentPieChart = null;
+
+  // 初始化饼图
+  function initFulfillmentPieChart() {
+    const ctx = document.getElementById('fulfillmentPieChart').getContext('2d');
+    const data = fulfillmentPieData[currentFfMetric];
+    
+    fulfillmentPieChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: data.labels,
+        datasets: [{
+          data: data.data,
+          backgroundColor: data.colors,
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label(ctx) {
+                const label = ctx.label || '';
+                const val = ctx.parsed;
+                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                return `${label}: ${((val/total)*100).toFixed(1)}%`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 更新图例
+  function updateFulfillmentLegend() {
+    const legendContainer = document.getElementById('fulfillment-chart-legend');
+    const data = fulfillmentPieData[currentFfMetric];
+    legendContainer.innerHTML = '';
+    
+    const total = data.data.reduce((a, b) => a + b, 0);
+    
+    data.labels.forEach((label, i) => {
+      const percentage = ((data.data[i] / total) * 100).toFixed(1);
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      item.innerHTML = `
+        <div class="legend-color" style="background:${data.colors[i]}"></div>
+        <div class="legend-text">${label}</div>
+        <div class="legend-value">${percentage}%</div>
+      `;
+      
+      // 点击图例项高亮对应的饼图部分
+      item.addEventListener('click', () => {
+        // 这里可以添加高亮逻辑
+      });
+      
+      legendContainer.appendChild(item);
+    });
+  }
+
+  // 切换指标
+  function switchFulfillmentMetric(metricKey) {
+    currentFfMetric = metricKey;
+    
+    // 更新图表标题
+    document.getElementById('fulfillment-chart-title').textContent = fulfillmentPieData[metricKey].title;
+    
+    // 更新图表数据
+    fulfillmentPieChart.data.labels = fulfillmentPieData[metricKey].labels;
+    fulfillmentPieChart.data.datasets[0].data = fulfillmentPieData[metricKey].data;
+    fulfillmentPieChart.data.datasets[0].backgroundColor = fulfillmentPieData[metricKey].colors;
+    fulfillmentPieChart.update();
+    
+    // 更新图例
+    updateFulfillmentLegend();
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // 初始化履约质量饼图
+    if (document.getElementById('fulfillmentPieChart')) {
+      initFulfillmentPieChart();
+      updateFulfillmentLegend();
+      
+      // 绑定指标卡片切换图表事件
+      document.querySelectorAll('#fulfillment-panel .toggle-trend-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          switchFulfillmentMetric(this.getAttribute('data-metric'));
+        });
+      });
+      
+      // 绑定图例显示/隐藏按钮
+      document.querySelector('.legend-btn').addEventListener('click', function() {
+        const legendContainer = document.querySelector('.chart-legend-container');
+        const showLegend = this.getAttribute('data-show') === 'true';
+        
+        if (showLegend) {
+          legendContainer.style.display = 'none';
+          this.setAttribute('data-show', 'false');
+          this.innerHTML = '<i class="fas fa-list"></i> 显示图例';
+          this.classList.remove('active');
+        } else {
+          legendContainer.style.display = 'block';
+          this.setAttribute('data-show', 'true');
+          this.innerHTML = '<i class="fas fa-list"></i> 隐藏图例';
+          this.classList.add('active');
+        }
+      });
+    }
+  });
+</script>
+
+  <div id="review-panel" class="analysis-panel">
+  <div class="panel-header">
+    <h3 class="panel-title">评价表现分析 - <span id="review-activity-title">东京迪士尼乐园一日票</span></h3>
+    <div class="panel-actions">
+      <button class="action-btn">
+        <i class="fas fa-bolt"></i> 优化评价表现
+      </button>
+      <button class="action-btn secondary">
+        <i class="fas fa-question-circle"></i> 查看最佳实践
+      </button>
+    </div>
+  </div>
+  
+  <!-- 指标卡片 -->
+  <div class="metrics-container">
+    <div class="metric-card-grid">
+      <div class="detailed-metric-card" id="num-reviews-card">
+        <div class="metric-header">
+          <h4># of Reviews</h4>
+          <div class="metric-tools">
+            <span class="tooltip-trigger">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltip-content">评价总数，支持自己同期对比</span>
+            </span>
+          </div>
+        </div>
+        <div class="metric-body">
+          <div class="primary-value">12,567</div>
+          <div class="secondary-value success">
+            <i class="fas fa-arrow-up"></i> 同比上升0.3
+          </div>
+        </div>
+        <div class="metric-benchmarks">
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业排名</div>
+            <div class="benchmark-bar">
+              <div class="progress-bar success" style="width: 75%;">超越75%竞对</div>
+            </div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业均值: 4.2</div>
+            <div class="benchmark-value success">+0.4</div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">同期: 4.4</div>
+            <div class="benchmark-value success">+0.2</div>
+          </div>
+        </div>
+      </div>
+ 
+      
+      <div class="detailed-metric-card" id="avg-review-score-card">
+        <div class="metric-header">
+          <h4>Average Review Score</h4>
+          <div class="metric-tools">
+            <span class="tooltip-trigger">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltip-content">平均评价分数，支持行业percentile对比+行业average对比+自己同期对比</span>
+            </span>
+            <button class="toggle-trend-btn" data-metric="avg-review-score">
+              <i class="fas fa-chart-pie"></i>
+            </button>
+          </div>
+        </div>
+        <div class="metric-body">
+          <div class="primary-value">4.6</div>
+          <div class="secondary-value success">
+            <i class="fas fa-arrow-up"></i> 同比上升0.2
+          </div>
+        </div>
+        <div class="metric-benchmarks">
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业排名</div>
+            <div class="benchmark-bar">
+              <div class="progress-bar success" style="width: 75%;">超越75%竞对</div>
+            </div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业均值: 4.2</div>
+            <div class="benchmark-value success">+0.4</div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">同期: 4.4</div>
+            <div class="benchmark-value success">+0.2</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="detailed-metric-card" id="good-review-rate-card">
+        <div class="metric-header">
+          <h4>Good Review Rate (per booking)</h4>
+          <div class="metric-tools">
+            <span class="tooltip-trigger">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltip-content">好评率（按订单维度），支持行业percentile对比+行业average对比+自己同期对比</span>
+            </span>
+            <button class="toggle-trend-btn" data-metric="good-review-rate">
+              <i class="fas fa-chart-pie"></i>
+            </button>
+          </div>
+        </div>
+        <div class="metric-body">
+          <div class="primary-value">92.3%</div>
+          <div class="secondary-value success">
+            <i class="fas fa-arrow-up"></i> 同比上升1.8%
+          </div>
+        </div>
+        <div class="metric-benchmarks">
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业排名</div>
+            <div class="benchmark-bar">
+              <div class="progress-bar success" style="width: 82%;">超越82%竞对</div>
+            </div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业均值: 86.5%</div>
+            <div class="benchmark-value success">+5.8%</div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">同期: 90.5%</div>
+            <div class="benchmark-value success">+1.8%</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="detailed-metric-card" id="bad-review-rate-card">
+        <div class="metric-header">
+          <h4>Bad Review Rate (per booking)</h4>
+          <div class="metric-tools">
+            <span class="tooltip-trigger">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltip-content">差评率（按订单维度），支持行业percentile对比+行业average对比+自己同期对比</span>
+            </span>
+            <button class="toggle-trend-btn" data-metric="bad-review-rate">
+              <i class="fas fa-chart-pie"></i>
+            </button>
+          </div>
+        </div>
+        <div class="metric-body">
+          <div class="primary-value">5.4%</div>
+          <div class="secondary-value success">
+            <i class="fas fa-arrow-down"></i> 同比下降1.2%
+          </div>
+        </div>
+        <div class="metric-benchmarks">
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业排名</div>
+            <div class="benchmark-bar">
+              <div class="progress-bar success" style="width: 78%;">超越78%竞对</div>
+            </div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业均值: 8.7%</div>
+            <div class="benchmark-value success">-3.3%</div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">同期: 6.6%</div>
+            <div class="benchmark-value success">-1.2%</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="detailed-metric-card" id="serious-bad-review-rate-card">
+        <div class="metric-header">
+          <h4>Serious Bad Review Rate (per booking)</h4>
+          <div class="metric-tools">
+            <span class="tooltip-trigger">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltip-content">严重差评率（按订单维度），支持行业percentile对比+行业average对比+自己同期对比</span>
+            </span>
+            <button class="toggle-trend-btn" data-metric="serious-bad-review-rate">
+              <i class="fas fa-chart-pie"></i>
+            </button>
+          </div>
+        </div>
+        <div class="metric-body">
+          <div class="primary-value">0.8%</div>
+          <div class="secondary-value success">
+            <i class="fas fa-arrow-down"></i> 同比下降0.3%
+          </div>
+        </div>
+        <div class="metric-benchmarks">
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业排名</div>
+            <div class="benchmark-bar">
+              <div class="progress-bar warning" style="width: 62%;">超越62%竞对</div>
+            </div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">行业均值: 1.2%</div>
+            <div class="benchmark-value success">-0.4%</div>
+          </div>
+          <div class="benchmark-item">
+            <div class="benchmark-label">同期: 1.1%</div>
+            <div class="benchmark-value success">-0.3%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 图表区域 -->
+  <div id="review-chart-area" class="chart-area">
+    <div class="chart-header">
+      <h4 id="review-chart-title">Bad Review Reasons Distribution</h4>
+      <div class="chart-controls">
+        <div class="chart-legend-toggle">
+          <button class="legend-btn active" data-show="true">
+            <i class="fas fa-list"></i> 显示图例
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="chart-container review-chart">
+      <div class="chart-wrapper">
+        <div class="chart-canvas-container">
+          <canvas id="reviewPieChart"></canvas>
+        </div>
+        <div class="chart-legend-container">
+          <div id="review-chart-legend" class="chart-legend"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 评价详情部分 -->
+  <div class="orders-section">
+    <div class="section-header">
+      <h4><i class="fas fa-exclamation-circle"></i> 差评订单分析</h4>
+      <div class="filter-actions">
+        <div class="filter-item">
+          <label>评价类型</label>
+          <select class="filter-select">
+            <option value="all">全部评价</option>
+            <option value="bad">差评</option>
+            <option value="serious">严重差评</option>
+            <option value="good">好评</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label>原因筛选</label>
+          <select class="filter-select">
+            <option value="all">全部原因</option>
+            <option value="supply">供应与服务问题</option>
+            <option value="booking">预订与兑换问题</option>
+            <option value="uncontrollable">不可控因素</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label>日期范围</label>
+          <select class="filter-select">
+            <option value="7">最近7天</option>
+            <option value="30" selected>最近30天</option>
+            <option value="90">最近90天</option>
+          </select>
+        </div>
+        <button class="filter-btn"><i class="fas fa-search"></i> 查询</button>
+      </div>
+    </div>
+    
+    <div class="orders-table-container">
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th>订单号</th>
+            <th>游玩日期</th>
+            <th>套餐</th>
+            <th>人数</th>
+            <th>评价时间</th>
+            <th>评分</th>
+            <th>评价类型</th>
+            <th>差评原因</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="#" class="order-link">TYO83456789</a></td>
+            <td>2023-04-12</td>
+            <td>成人票 (假日)</td>
+            <td>3</td>
+            <td>2023-04-13 14:30</td>
+            <td>2.5</td>
+            <td><span class="tag tag-urgent">严重差评</span></td>
+            <td>供应与服务问题</td>
+            <td><button class="action-link" data-order="TYO83456789">查看详情</button></td>
+          </tr>
+          <tr>
+            <td><a href="#" class="order-link">TYO83567890</a></td>
+            <td>2023-04-14</td>
+            <td>成人+儿童套票</td>
+            <td>4</td>
+            <td>2023-04-15 09:15</td>
+            <td>3.0</td>
+            <td><span class="tag tag-normal">普通差评</span></td>
+            <td>预订与兑换问题</td>
+            <td><button class="action-link" data-order="TYO83567890">查看详情</button></td>
+          </tr>
+          <tr>
+            <td><a href="#" class="order-link">TYO83678901</a></td>
+            <td>2023-04-15</td>
+            <td>成人票 (平日)</td>
+            <td>2</td>
+            <td>2023-04-16 18:20</td>
+            <td>4.8</td>
+            <td><span class="tag tag-voucher">好评</span></td>
+            <td>-</td>
+            <td><button class="action-link" data-order="TYO83678901">查看详情</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="table-footer">
+      <div class="showing-info">显示 1-3 共 25 条记录</div>
+      <div class="pagination">
+        <button class="page-btn" disabled><i class="fas fa-chevron-left"></i></button>
+        <button class="page-btn active">1</button>
+        <button class="page-btn">2</button>
+        <button class="page-btn">3</button>
+        <span class="page-ellipsis">...</span>
+        <button class="page-btn">5</button>
+        <button class="page-btn"><i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 诊断和建议部分 -->
+  <div class="diagnosis-section">
+    <h4><i class="fas fa-stethoscope"></i> 诊断结果与改进建议</h4>
+    <div class="diagnosis-content">
+      <div class="diagnosis-item success">
+        <div class="diagnosis-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="diagnosis-text">
+          <div class="diagnosis-title">评价表现优秀</div>
+          <div class="diagnosis-desc">平均评价分数4.6，优于行业平均(4.2)，表明客户满意度高</div>
+        </div>
+        <div class="diagnosis-action">
+          <button class="quick-action-btn">
+            <i class="fas fa-chart-line"></i> 查看趋势
+          </button>
+        </div>
+      </div>
+      <div class="diagnosis-item info">
+        <div class="diagnosis-icon">
+          <i class="fas fa-info-circle"></i>
+        </div>
+        <div class="diagnosis-text">
+          <div class="diagnosis-title">主要差评原因集中</div>
+          <div class="diagnosis-desc">供应与服务问题和预订与兑换问题是主要差评原因，可通过优化流程减少影响</div>
+        </div>
+        <div class="diagnosis-action">
+          <button class="quick-action-btn">
+            <i class="fas fa-tools"></i> 优化方案
+          </button>
+        </div>
+      </div>
+      <div class="diagnosis-item warning">
+        <div class="diagnosis-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="diagnosis-text">
+          <div class="diagnosis-title">严重差评率可优化</div>
+          <div class="diagnosis-desc">严重差评率0.8%，虽低于行业均值(1.2%)，但需关注以提升客户体验</div>
+        </div>
+        <div class="diagnosis-action">
+          <button class="quick-action-btn">
+            <i class="fas fa-cogs"></i> 预警设置
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 最佳实践建议 -->
+    <div class="best-practices-section">
+      <h5><i class="fas fa-lightbulb"></i> 最佳实践建议</h5>
+      <div class="practices-grid">
+        <div class="practice-item">
+          <div class="practice-icon">
+            <i class="fas fa-concierge-bell"></i>
+          </div>
+          <div class="practice-content">
+            <div class="practice-title">提升服务质量</div>
+            <div class="practice-desc">培训服务人员，确保服务态度和效率达标</div>
+            <a href="#" class="practice-link">查看详细指南</a>
+          </div>
+        </div>
+        <div class="practice-item">
+          <div class="practice-icon">
+            <i class="fas fa-ticket-alt"></i>
+          </div>
+          <div class="practice-content">
+            <div class="practice-title">优化预订流程</div>
+            <div class="practice-desc">简化预订步骤，确保信息准确无误</div>
+            <a href="#" class="practice-link">设置预订规则</a>
+          </div>
+        </div>
+        <div class="practice-item">
+          <div class="practice-icon">
+            <i class="fas fa-exclamation-circle"></i>
+          </div>
+          <div class="practice-content">
+            <div class="practice-title">建立预警机制</div>
+            <div class="practice-desc">针对严重差评，设置自动监控和响应流程</div>
+            <a href="#" class="practice-link">查看配置方法</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 资源链接 -->
+    <div class="resource-links">
+      <h5>相关资源</h5>
+      <div class="resource-list">
+        <a href="#" class="resource-link">
+          <i class="fas fa-file-alt"></i> 如何提升客户满意度
+        </a>
+        <a href="#" class="resource-link">
+          <i class="fas fa-video"></i> 服务质量管理最佳实践
+        </a>
+        <a href="#" class="resource-link">
+          <i class="fas fa-book"></i> 处理客户投诉技巧
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .review-chart {
+    height: 350px;
+  }
+  
+  .chart-wrapper {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    gap: 20px;
+  }
+  
+  .chart-canvas-container {
+    flex: 0 0 280px;
+    height: 100%;
+    position: relative;
+  }
+  
+  .chart-legend-container {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 15px;
+  }
+  
+  .chart-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+    cursor: pointer;
+  }
+  
+  .legend-item:hover {
+    background-color: var(--light-bg);
+  }
+  
+  .legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    margin-right: 10px;
+    flex-shrink: 0;
+  }
+  
+  .legend-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    flex: 1;
+  }
+  
+  .legend-value {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    min-width: 45px;
+    text-align: right;
+  }
+  
+  .legend-btn {
+    padding: 6px 12px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .legend-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+  
+  .tag-urgent {
+    background: rgba(244, 67, 54, 0.1);
+    color: #D32F2F;
+  }
+  
+  .tag-normal {
+    background: rgba(255, 152, 0, 0.1);
+    color: #F57C00;
+  }
+  
+  .tag-voucher {
+    background: rgba(76, 175, 80, 0.1);
+    color: #2E7D32;
+  }
+  
+  @media (max-width: 768px) {
+    .chart-wrapper {
+      flex-direction: column;
+    }
+    
+    .chart-canvas-container {
+      width: 100%;
+      height: 250px;
+      max-width: 100%;
+      flex: auto;
+    }
+    
+    .chart-legend-container {
+      max-height: 200px;
+    }
+  }
+</style>
+
+<script>
+  const reviewPieData = {
+    'avg-review-score': {
+      title: 'Average Review Score 分布',
+      labels: ['5星', '4星', '3星', '2星', '1星'],
+      data: [60, 25, 10, 3, 2],
+      colors: ['#4ECDC4', '#45B7D1', '#F7DC6F', '#FF6B6B', '#BB8FCE']
+    },
+    'good-review-rate': {
+      title: 'Good Review Rate 分布',
+      labels: ['好评', '中评', '差评'],
+      data: [92.3, 2.3, 5.4],
+      colors: ['#4ECDC4', '#F7DC6F', '#FF6B6B']
+    },
+    'bad-review-rate': {
+      title: 'Bad Review Reasons Distribution',
+      labels: [
+        'Supply & Service Issues',
+        'Booking & Redemption Issues',
+        'Uncontrollable Issues',
+        'CEG Service & Refund Issues'
+      ],
+      data: [40, 30, 20, 10],
+      colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#F7DC6F']
+    },
+    'serious-bad-review-rate': {
+      title: 'Serious Bad Review Reasons Distribution',
+      labels: [
+        'Supply & Service Issues',
+        'Booking & Redemption Issues',
+        'Uncontrollable Issues'
+      ],
+      data: [50, 30, 20],
+      colors: ['#FF6B6B', '#4ECDC4', '#45B7D1']
+    }
+  };
+
+  let currentReviewMetric = 'bad-review-rate';
+  let reviewPieChart = null;
+
+  function initReviewPieChart() {
+    const ctx = document.getElementById('reviewPieChart').getContext('2d');
+    const data = reviewPieData[currentReviewMetric];
+    
+    reviewPieChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: data.labels,
+        datasets: [{
+          data: data.data,
+          backgroundColor: data.colors,
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label(ctx) {
+                const label = ctx.label || '';
+                const val = ctx.parsed;
+                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                return `${label}: ${((val/total)*100).toFixed(1)}%`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function updateReviewLegend() {
+    const legendContainer = document.getElementById('review-chart-legend');
+    const data = reviewPieData[currentReviewMetric];
+    legendContainer.innerHTML = '';
+    
+    const total = data.data.reduce((a, b) => a + b, 0);
+    
+    data.labels.forEach((label, i) => {
+      const percentage = ((data.data[i] / total) * 100).toFixed(1);
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      item.innerHTML = `
+        <div class="legend-color" style="background:${data.colors[i]}"></div>
+        <div class="legend-text">${label}</div>
+        <div class="legend-value">${percentage}%</div>
+      `;
+      legendContainer.appendChild(item);
+    });
+  }
+
+  function switchReviewMetric(metricKey) {
+    currentReviewMetric = metricKey;
+    document.getElementById('review-chart-title').textContent = reviewPieData[metricKey].title;
+    reviewPieChart.data.labels = reviewPieData[metricKey].labels;
+    reviewPieChart.data.datasets[0].data = reviewPieData[metricKey].data;
+    reviewPieChart.data.datasets[0].backgroundColor = reviewPieData[metricKey].colors;
+    reviewPieChart.update();
+    updateReviewLegend();
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('reviewPieChart')) {
+      initReviewPieChart();
+      updateReviewLegend();
+      
+      document.querySelectorAll('#review-panel .toggle-trend-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          switchReviewMetric(this.getAttribute('data-metric'));
+        });
+      });
+      
+      document.querySelector('.legend-btn').addEventListener('click', function() {
+        const legendContainer = document.querySelector('.chart-legend-container');
+        const showLegend = this.getAttribute('data-show') === 'true';
+        
+        if (showLegend) {
+          legendContainer.style.display = 'none';
+          this.setAttribute('data-show', 'false');
+          this.innerHTML = '<i class="fas fa-list"></i> 显示图例';
+          this.classList.remove('active');
+        } else {
+          legendContainer.style.display = 'block';
+          this.setAttribute('data-show', 'true');
+          this.innerHTML = '<i class="fas fa-list"></i> 隐藏图例';
+          this.classList.add('active');
+        }
+      });
+    }
+  });
+</script>
+
+
+</div>
+
+<style>
+  /* Diagnostics & Benchmarking 样式 */
+  .diagnostics-card {
+    padding: 25px;
+  }
+  
+  /* 选择面板样式 */
+  .selection-panel {
+    display: flex;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 20px;
+    position: relative;
+  }
+  
+  .selection-panel::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    height: 2px;
+    background-color: var(--border);
+    z-index: 0;
+  }
+  
+  .selection-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 450px;
+  }
+  
+  .step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--light-bg);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+  
+  .selection-step.active .step-number {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: white;
+  }
+  
+  .step-content {
+    flex: 1;
+  }
+  
+  .step-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+  }
+  
+  .selection-step.active .step-label {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  
+  /* 自定义下拉框 */
+  .custom-select {
+    width: 100%;
+    padding: 12px 15px;
+    font-size: 15px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background-color: white;
+    color: var(--text-primary);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='18' height='18'%3E%3Cpath fill='none' d='M0 0h24v24H0z'/%3E%3Cpath d='M12 15l-5-5h10l-5 5z' fill='%23666'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .custom-select:hover {
+    border-color: var(--primary-light);
+  }
+  
+  .custom-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.25);
+  }
+  
+  /* 维度选择器 */
+  .dimension-selector {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  
+  .dimension-btn {
+    padding: 10px 15px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+  }
+  
+  .dimension-btn:hover {
+    background: var(--light-bg);
+    color: var(--text-primary);
+  }
+  
+  .dimension-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+  
+  /* 加载指示器 */
+  #loading-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+  }
+  
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(30, 136, 229, 0.2);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  .loading-text {
+    margin-top: 15px;
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  /* 分析面板 */
+  .analysis-panel {
+    display: none;
+  }
+  
+  .analysis-panel.active {
+    display: block;
+  }
+  
+  .panel-title {
+    margin-bottom: 20px;
+    font-size: 18px;
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  
+  /* 维度概览卡片样式 */
+  .dimensions-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 25px;
+  }
+  
+  .dimension-card {
+    padding: 20px;
+    border-radius: 10px;
+    background: white;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .dimension-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+  }
+  
+  .booking-card { border-top: 4px solid #4CAF50; }
+  .fulfillment-card { border-top: 4px solid #2196F3; }
+  .review-card { border-top: 4px solid #FF9800; }
+  
+  .dimension-title {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 16px;
+    gap: 8px;
+  }
+  
+  .dimension-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 15px;
+    flex: 1;
+  }
+  
+  .metric {
+    padding: 10px;
+    background: rgba(0,0,0,0.02);
+    border-radius: 6px;
+  }
+  
+  .metric-name {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+  }
+  
+  .metric-value {
+    font-size: 18px;
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 5px;
+  }
+  
+  .metric-benchmark {
+    font-size: 11px;
+  }
+  
+  .rank-good {
+    color: #2E7D32;
+    background: rgba(46, 125, 50, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  
+  .rank-warning {
+    color: #F57C00;
+    background: rgba(245, 124, 0, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  
+  .rank-normal {
+    color: #0288D1;
+    background: rgba(2, 136, 209, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  
+  .dimension-action {
+    margin-top: auto;
+    text-align: center;
+  }
+  
+  .action-btn {
+    padding: 8px 15px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .action-btn:hover {
+    background: var(--primary-dark);
+  }
+  
+  /* 诊断结果概览 */
+  .diagnosis-overview {
+    margin-top: 30px;
+    background: var(--light-bg);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  
+  .diagnosis-overview h4 {
+    margin: 0 0 15px;
+    font-size: 16px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .diagnosis-items {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .diagnosis-item {
+    display: flex;
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    gap: 15px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  }
+  
+  .diagnosis-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  
+  .diagnosis-item.warning .diagnosis-icon {
+    background: rgba(255, 152, 0, 0.1);
+    color: #F57C00;
+  }
+  
+  .diagnosis-item.success .diagnosis-icon {
+    background: rgba(76, 175, 80, 0.1);
+    color: #388E3C;
+  }
+  
+  .diagnosis-item.info .diagnosis-icon {
+    background: rgba(33, 150, 243, 0.1);
+    color: #1976D2;
+  }
+  
+  .diagnosis-content {
+    flex: 1;
+  }
+  
+  .diagnosis-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 5px;
+  }
+  
+  .diagnosis-desc {
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin-bottom: 10px;
+    line-height: 1.5;
+  }
+  
+  .diagnosis-action {
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .quick-action-btn {
+    background: var(--light-bg);
+    border: none;
+    color: var(--primary);
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+  }
+  
+  .quick-action-btn:hover {
+    background: rgba(30, 136, 229, 0.1);
+  }
+  
+  /* 响应式调整 */
+  @media (max-width: 768px) {
+    .dimension-metrics {
+      grid-template-columns: 1fr;
+    }
+    
+    .selection-panel::before {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  // 切换到特定维度
+  function switchToDimension(dimension) {
+    // 隐藏所有面板
+    document.querySelectorAll('.analysis-panel').forEach(panel => {
+      panel.classList.remove('active');
+    });
+    
+    // 显示选中的面板
+    document.getElementById(dimension + '-panel').classList.add('active');
+    
+    // 更新步骤2的选中状态
+    document.getElementById('dimension-selection-step').classList.add('active');
+    
+    // 更新维度按钮的选中状态
+    document.querySelectorAll('.dimension-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    document.querySelector(`.dimension-btn[data-dimension="${dimension}"]`).classList.add('active');
+  }
+  
+  // 初始化交互
+  document.addEventListener('DOMContentLoaded', function() {
+    // 绑定维度按钮点击事件
+    document.querySelectorAll('.dimension-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const dimension = this.getAttribute('data-dimension');
+        switchToDimension(dimension);
+      });
+    });
+    
+    // 活动选择变化时的处理
+    document.getElementById('activity-select').addEventListener('change', function() {
+      const activityId = this.value;
+      const activityName = this.options[this.selectedIndex].text;
+      
+      // 显示加载指示器
+      document.getElementById('loading-indicator').style.display = 'flex';
+      document.querySelectorAll('.analysis-panel').forEach(panel => {
+        panel.classList.remove('active');
+      });
+      
+      // 模拟加载数据
+      setTimeout(() => {
+        // 隐藏加载指示器
+        document.getElementById('loading-indicator').style.display = 'none';
+        
+        // 更新活动标题
+        document.getElementById('activity-title').textContent = activityName;
+        
+        // 显示概览面板
+        document.getElementById('overview-panel').classList.add('active');
+        
+        // 重置步骤2
+        document.querySelectorAll('.dimension-btn').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        document.querySelector('.dimension-btn[data-dimension="overview"]').classList.add('active');
+      }, 800);
+    });
+  });
+</script>
+
+
+<style>
+  /* 表格容器 */
+  .table-wrapper {
+    overflow-x: auto;
+    margin-bottom: 15px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  
+  /* 数据表格 */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  
+  .data-table th,
+  .data-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: middle;
+  }
+  
+  .data-table th {
+    background-color: var(--light-bg);
+    color: var(--text-secondary);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  
+  .data-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+  
+  .data-table tbody tr:hover {
+    background-color: rgba(245, 247, 250, 0.8);
+  }
+  
+  /* 文本对齐 */
+  .text-center {
+    text-align: center;
+  }
+  
+  /* 趋势指标 */
+  .trend-up {
+    color: var(--success);
+    font-size: 12px;
+    margin-left: 5px;
+  }
+  
+  .trend-down {
+    color: var(--danger);
+    font-size: 12px;
+    margin-left: 5px;
+  }
+  
+  .trend-same {
+    color: var(--text-light);
+    font-size: 12px;
+    margin-left: 5px;
+  }
+  
+  /* 链接样式 */
+  .view-more-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+  
+  .view-more-link:hover {
+    text-decoration: underline;
+    color: var(--primary-dark);
+  }
+  
+  /* 表格底部 */
+  .table-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  
+  .view-all-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--light-bg);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .view-all-btn:hover {
+    background: var(--border);
+    color: var(--text-primary);
+  }
+  
+  .pagination {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .page-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .page-btn:hover {
+    background: var(--light-bg);
+    color: var(--text-primary);
+    border-color: var(--border);
+  }
+  
+  .page-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+  
+  .next-btn {
+    width: auto;
+    padding: 0 10px;
+  }
+  
+  .page-ellipsis {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    height: 32px;
+    font-size: 14px;
+  }
+  
+  /* 响应式调整 */
+  @media (max-width: 992px) {
+    .table-footer {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .data-table th,
+    .data-table td {
+      padding: 10px 8px;
+      font-size: 12px;
+    }
+  }
+</style>
+
+
+<style>
+  /* Review Performance 样式 */
+  .review-metric-selector {
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-top: 4px solid var(--primary);
+    transition: all 0.3s ease;
+    position: relative;
+  }
+  
+  .review-metric-selector:hover {
+    border-color: var(--primary-light);
+    border-top-color: var(--primary);
+    transform: translateY(-2px);
+  }
+  
+  .review-metric-selector.selected {
+    border-color: var(--primary);
+    border-top-color: var(--primary);
+    background: rgba(30, 136, 229, 0.05);
+    box-shadow: 0 6px 20px rgba(30, 136, 229, 0.15);
+  }
+  
+  .review-metric-selector.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    color: var(--primary);
+    font-weight: bold;
+    font-size: 16px;
+  }
+  
+  /* 图表头部 */
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .review-breadcrumb {
+    font-size: 13px;
+  }
+  
+  .review-breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .review-breadcrumb a:hover {
+    text-decoration: underline;
+  }
+  
+  /* 图表容器样式 */
+  .review-chart-container {
+    background: rgba(250, 250, 250, 0.5);
+    border-radius: 8px;
+    padding: var(--chart-container-padding);
+    height: auto;
+    min-height: var(--chart-height-md);
+  }
+  
+  .review-chart-wrapper {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  
+  .review-chart-section {
+    flex: 0 0 auto;
+    width: 280px;
+    height: 280px;
+    position: relative;
+  }
+  
+  .review-legend-section {
+    flex: 1;
+    min-width: 220px;
+    max-width: 450px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .review-legend-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding-right: 5px;
+  }
+  
+  /* 图例项样式 */
+  .review-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 12px;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .review-legend-item:hover {
+    background-color: rgba(0,0,0,0.02);
+  }
+  
+  .review-legend-color {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  
+  .review-legend-label {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  
+  .review-legend-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  
+  /* 建议框样式 */
+  .review-suggestion-box {
+    background: var(--light-bg);
+    border-radius: 6px;
+    padding: 12px;
+    border-left: 3px solid var(--primary);
+    margin-top: 5px;
+  }
+  
+  /* 响应式调整 */
+  @media (max-width: 768px) {
+    .chart-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .review-chart-wrapper {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .review-chart-section {
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 280px;
+    }
+    
+    .review-legend-section {
+      width: 100%;
+      max-width: 100%;
+    }
+  }
+</style>
+
+<script>
+  // 所有评价指标的数据
+  const reviewMetricData = {
+    'review-count': {
+      title: '# of Reviews 趋势',
+      data: {
+        labels: ['1月', '2月', '3月', '4月'],
+        current: [10325, 11240, 11780, 12567],
+        previous: [9850, 10120, 10580, 11322]
+      },
+      type: 'line'
+    },
+    'avg-score': {
+      title: 'Average Review Score 趋势',
+      data: {
+        labels: ['1月', '2月', '3月', '4月'],
+        current: [4.3, 4.4, 4.5, 4.6],
+        previous: [4.2, 4.3, 4.3, 4.4]
+      },
+      type: 'line'
+    },
+    'good-rate': {
+      title: 'Good Review Rate 趋势',
+      data: {
+        labels: ['1月', '2月', '3月', '4月'],
+        current: [90.1, 91.2, 91.8, 92.3],
+        previous: [88.4, 89.2, 89.8, 90.5]
+      },
+      type: 'line'
+    },
+    'bad-rate': {
+      title: 'Bad Review Rate 趋势',
+      data: {
+        labels: ['1月', '2月', '3月', '4月'],
+        current: [6.8, 6.2, 5.7, 5.4],
+        previous: [7.9, 7.5, 7.1, 6.6]
+      },
+      type: 'line',
+      altView: 'reasons' // 这个指标有另一种视图模式
+    },
+    'serious-bad-rate': {
+      title: 'Serious Bad Review Rate 趋势',
+      data: {
+        labels: ['1月', '2月', '3月', '4月'],
+        current: [1.2, 1.0, 0.9, 0.8],
+        previous: [1.5, 1.4, 1.3, 1.1]
+      },
+      type: 'line'
+    }
+  };
+
+  // 差评原因数据（嵌套结构）
+  const badReviewData = {
+    // 一级原因
+    level1: {
+      labels: [
+        'Supply & Service Issues',
+        'Booking & Redemption Issues',
+        'Uncontrollable Issues',
+        'CEG Service & Refund Issues'
+      ],
+      data: [45, 35, 10, 10],
+      colors: ['#FF6B6B', '#48BEFF', '#FFD166', '#06D6A0']
+    },
+    // 二级原因（按一级原因分组）
+    level2: {
+      'Supply & Service Issues': {
+        labels: [
+          'Poor facilities / environment / vehicle',
+          'Poor itinerary / product design / logistics',
+          'Poor staff quality (attitude / ability)'
+        ],
+        data: [20, 15, 10],
+        colors: ['#FF8A8A', '#FF6B6B', '#E74C3C']
+      },
+      'Booking & Redemption Issues': {
+        labels: [
+          'Insufficient / missing / misleading info',
+          'Failed to redeem (invalid voucher)',
+          'Delay / punctuality issues (pick-up/check in)',
+          'Missing car / driver / staff / tour guide (no show)',
+          'Unable to amend based on preference (seat)'
+        ],
+        data: [12, 8, 7, 5, 3],
+        colors: ['#64C9FF', '#48BEFF', '#3498DB', '#2E86C1', '#1A5276']
+      },
+      'Uncontrollable Issues': {
+        labels: ['Bad weather/Disaster'],
+        data: [10],
+        colors: ['#FFD166']
+      },
+      'CEG Service & Refund Issues': {
+        labels: [
+          'Poor customer service (slow response/not helpful)',
+          'Refund Process issue'
+        ],
+        data: [7, 3],
+        colors: ['#06D6A0', '#2EB086']
+      }
+    }
+  };
+
+  // 全局变量
+  let currentLevel = 1;              // 当前查看的原因层级
+  let selectedLevel1 = null;         // 选中的一级原因
+  let currentReviewMetric = 'bad-rate';  // 当前查看的指标
+  let currentView = 'reasons';       // 当前视图模式: 'trend' 或 'reasons'
+  let reviewChart = null;            // 图表实例
+
+  // 初始化原因分布图表
+  function initReviewChart() {
+    const ctx = document.getElementById('reviewReasonChart').getContext('2d');
+    
+    reviewChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: badReviewData.level1.labels,
+        datasets: [{
+          data: badReviewData.level1.data,
+          backgroundColor: badReviewData.level1.colors,
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label(ctx) {
+                const label = ctx.label || '';
+                const val = ctx.parsed;
+                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                return `${label}: ${((val/total)*100).toFixed(1)}%`;
+              }
+            }
+          }
+        },
+        onClick: (e, elements) => {
+          if (elements.length > 0 && currentLevel === 1) {
+            const index = elements[0].index;
+            const level1Reason = badReviewData.level1.labels[index];
+            showLevel2Reasons(level1Reason);
+          }
+        }
+      }
+    });
+  }
+
+  // 更新原因分布图例
+  function updateReviewLegend() {
+    const container = document.getElementById('review-legend-content');
+    container.innerHTML = '';
+    
+    let data, labels, colors;
+    
+    if (currentLevel === 1) {
+      data = badReviewData.level1.data;
+      labels = badReviewData.level1.labels;
+      colors = badReviewData.level1.colors;
+    } else {
+      data = badReviewData.level2[selectedLevel1].data;
+      labels = badReviewData.level2[selectedLevel1].labels;
+      colors = badReviewData.level2[selectedLevel1].colors;
+    }
+    
+    const total = data.reduce((a, b) => a + b, 0);
+    
+    labels.forEach((label, i) => {
+      const item = document.createElement('div');
+      item.className = 'review-legend-item';
+      
+      // 计算百分比
+      const percentage = ((data[i] / total) * 100).toFixed(1);
+      
+      item.innerHTML = `
+        <div class="review-legend-color" style="background:${colors[i]}"></div>
+        <span class="review-legend-label">${label}</span>
+        <strong class="review-legend-value">${percentage}%</strong>
+      `;
+      
+      // 如果是一级原因，添加点击事件
+      if (currentLevel === 1) {
+        item.addEventListener('click', () => showLevel2Reasons(label));
+      }
+      
+      container.appendChild(item);
+    });
+  }
+
+  // 显示二级原因
+  function showLevel2Reasons(level1Reason) {
+    selectedLevel1 = level1Reason;
+    currentLevel = 2;
+    
+    // 更新面包屑
+    document.getElementById('level1-breadcrumb').style.display = 'inline';
+    
+    // 更新图表标题
+    document.getElementById('review-chart-title').textContent = `${level1Reason} - 详细原因分布`;
+    
+    // 更新图表数据
+    const level2Data = badReviewData.level2[level1Reason];
+    reviewChart.data.labels = level2Data.labels;
+    reviewChart.data.datasets[0].data = level2Data.data;
+    reviewChart.data.datasets[0].backgroundColor = level2Data.colors;
+    reviewChart.update();
+    
+    // 更新图例
+    updateReviewLegend();
+    
+    // 更新建议
+    updateSuggestion(level1Reason);
+  }
+
+  // 返回一级原因视图
+  function returnToLevel1() {
+    currentLevel = 1;
+    selectedLevel1 = null;
+    
+    // 更新面包屑
+    document.getElementById('level1-breadcrumb').style.display = 'none';
+    
+    // 更新图表标题
+    document.getElementById('review-chart-title').textContent = 'Bad Review Reasons Distribution';
+    
+    // 更新图表数据
+    reviewChart.data.labels = badReviewData.level1.labels;
+    reviewChart.data.datasets[0].data = badReviewData.level1.data;
+    reviewChart.data.datasets[0].backgroundColor = badReviewData.level1.colors;
+    reviewChart.update();
+    
+    // 更新图例
+    updateReviewLegend();
+    
+    // 更新建议为默认建议
+    document.getElementById('review-suggestion').textContent = 
+      '优化预订流程和产品信息透明度，提升服务人员培训，加强供应商质量管理';
+  }
+
+  // 更新针对性建议
+  function updateSuggestion(level1Reason) {
+    const suggestionEl = document.getElementById('review-suggestion');
+    
+    switch(level1Reason) {
+      case 'Supply & Service Issues':
+        suggestionEl.textContent = '加强供应商管理，提升服务人员培训，优化产品设计和物流安排';
+        break;
+      case 'Booking & Redemption Issues':
+        suggestionEl.textContent = '完善产品信息透明度，优化预订系统，加强兑换流程监控';
+        break;
+      case 'Uncontrollable Issues':
+        suggestionEl.textContent = '完善不可抗力因素的应急预案，提前向客户告知可能的天气影响';
+        break;
+      case 'CEG Service & Refund Issues':
+        suggestionEl.textContent = '提升客服响应速度，简化退款流程，加强客服培训';
+        break;
+    }
+  }
+
+  // 切换评价指标
+  function switchReviewMetric(metricKey) {
+    currentReviewMetric = metricKey;
+    
+    // 更新选中状态
+    document.querySelectorAll('.review-metric-selector').forEach(card => {
+      card.classList.remove('selected');
+    });
+    document.querySelector(`[data-review-metric="${metricKey}"]`).classList.add('selected');
+    
+    // 检查当前是否为 bad-rate 指标
+    if (metricKey === 'bad-rate') {
+      showReasonsView();
+    } else {
+      showTrendView(metricKey);
+    }
+  }
+
+  // 显示趋势图视图
+  function showTrendView(metricKey) {
+    currentView = 'trend';
+    const metricData = reviewMetricData[metricKey];
+    
+    // 更新图表标题
+    document.getElementById('review-chart-title').textContent = metricData.title;
+    
+    // 隐藏面包屑
+    document.getElementById('level1-breadcrumb').style.display = 'none';
+    
+    // 清除旧图表
+    if (reviewChart) {
+      reviewChart.destroy();
+    }
+    
+    // 创建趋势图
+    const ctx = document.getElementById('reviewReasonChart').getContext('2d');
+    reviewChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: metricData.data.labels,
+        datasets: [{
+          label: '本期数据',
+          data: metricData.data.current,
+          borderColor: '#1e88e5',
+          backgroundColor: 'rgba(30, 136, 229, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4
+        }, {
+          label: '同期数据',
+          data: metricData.data.previous,
+          borderColor: '#ff9800',
+          backgroundColor: 'rgba(255, 152, 0, 0.1)',
+          borderWidth: 2,
+          borderDash: [5, 5],
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' }
+        },
+        scales: {
+          y: {
+            beginAtZero: metricKey !== 'avg-score'
+          }
+        }
+      }
+    });
+    
+    // 更新图例内容
+    document.getElementById('review-legend-content').innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 10px; padding: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 14px; height: 3px; background: #1e88e5;"></div>
+          <span style="font-size: 13px; color: var(--text-secondary);">本期数据</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 14px; height: 3px; background: #ff9800; border-top: 1px dashed #ff9800;"></div>
+          <span style="font-size: 13px; color: var(--text-secondary);">同期数据</span>
+        </div>
+      </div>
+    `;
+    
+    // 更新建议
+    document.getElementById('review-suggestion').textContent = 
+      '持续监控客户评价指标变化，关注趋势异常点，采取针对性改进措施';
+  }
+
+  // 显示原因分布视图
+  function showReasonsView() {
+    currentView = 'reasons';
+    currentLevel = 1;
+    selectedLevel1 = null;
+    
+    // 更新图表标题
+    document.getElementById('review-chart-title').textContent = 'Bad Review Reasons Distribution';
+    
+    // 隐藏面包屑
+    document.getElementById('level1-breadcrumb').style.display = 'none';
+    
+    // 清除旧图表
+    if (reviewChart) {
+      reviewChart.destroy();
+    }
+    
+    // 初始化饼图
+    initReviewChart();
+    updateReviewLegend();
+    
+    // 更新建议
+    document.getElementById('review-suggestion').textContent = 
+      '优化预订流程和产品信息透明度，提升服务人员培训，加强供应商质量管理';
+  }
+
+  // 页面加载完成后初始化
+  document.addEventListener('DOMContentLoaded', function() {
+    // 初始化图表 - 注意，这可能会被多次调用，需要避免重复初始化
+    if (document.getElementById('reviewReasonChart') && !window.reviewChartInitialized) {
+      window.reviewChartInitialized = true;
+      
+      // 默认选中 bad-rate
+      document.querySelector('[data-review-metric="bad-rate"]').classList.add('selected');
+      showReasonsView();
+      
+      // 绑定指标卡片点击事件
+      document.querySelectorAll('.review-metric-selector').forEach(card => {
+        card.addEventListener('click', function() {
+          const metricKey = this.dataset.reviewMetric;
+          switchReviewMetric(metricKey);
+        });
+      });
+    }
+  });
+</script>
+
+
+<style>
+  /* Fulfillment Quality Overview 样式 */
+  .ff-metric-selector {
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-top: 4px solid var(--primary);
+    transition: all 0.3s ease;
+    position: relative;
+  }
+  
+  .ff-metric-selector:hover {
+    border-color: var(--primary-light);
+    border-top-color: var(--primary);
+    transform: translateY(-2px);
+  }
+  
+  .ff-metric-selector.selected {
+    border-color: var(--primary);
+    border-top-color: var(--primary);
+    background: rgba(30, 136, 229, 0.05);
+    box-shadow: 0 6px 20px rgba(30, 136, 229, 0.15);
+  }
+  
+  .ff-metric-selector.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    color: var(--primary);
+    font-weight: bold;
+    font-size: 16px;
+  }
+  
+  /* 饼图区域样式 */
+  .ff-chart-container {
+    background: rgba(250, 250, 250, 0.5);
+    border-radius: 8px;
+    padding: var(--chart-container-padding);
+    height: auto;
+    min-height: var(--chart-height-md);
+  }
+  
+  .ff-chart-wrapper {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 40px;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  
+  .ff-pie-section {
+    flex: 0 0 auto;
+    width: 220px;
+    height: 220px;
+    position: relative;
+  }
+  
+  .ff-legend-section {
+    flex: 1;
+    min-width: 220px;
+    max-width: 450px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .ff-legend-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  /* 图例项样式 */
+  .ff-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  
+  .ff-legend-color {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  
+  .ff-legend-label {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  
+  .ff-legend-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  
+  /* 建议框样式 */
+  .ff-suggestion-box {
+    background: var(--light-bg);
+    border-radius: 6px;
+    padding: 12px;
+    border-left: 3px solid var(--primary);
+    margin-top: 5px;
+  }
+  
+  .suggestion-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .suggestion-title i {
+    color: var(--primary);
+  }
+  
+  .suggestion-text {
+    font-size: 12px;
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+  
+  /* 响应式调整 */
+  @media (max-width: 768px) {
+    .ff-chart-wrapper {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .ff-pie-section {
+      margin-bottom: 20px;
+    }
+    
+    .ff-legend-section {
+      width: 100%;
+      max-width: 100%;
+    }
+  }
+</style>
+
+<script>
+  // FF 饼图数据
+  const ffPieData = {
+    'fulfillment-failure': {
+      title: '% Fulfillment Failure per Booking 原因分布',
+      labels: [
+        'Other booking / redemption issues',
+        'Fully booked / Out of stock',
+        'Closure / No operation at the time',
+        'Booking connection issues',
+        'Operator rejected the ticket',
+        'Confirmation / Delivery time is too long',
+        'Not enough participants',
+        'Out of operator coverage / service area',
+        'Unclear / misleading / missing info'
+      ],
+      data: [25, 20, 18, 15, 12, 10, 8, 6, 4],
+      colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#F7DC6F', '#BB8FCE', '#85C1E9', '#58D68D', '#F8C471', '#EC7063']
+    },
+    'urgent-fulfillment-failure': {
+      title: '% Urgent Fulfillment Failure (FF) per Booking (24h) 原因分布',
+      labels: [
+        'Fully booked / Out of stock',
+        'Closure / No operation at the time',
+        'Other booking / redemption issues',
+        'Booking connection issues',
+        'Operator rejected the ticket',
+        'Confirmation / Delivery time is too long',
+        'Not enough participants',
+        'Out of operator coverage / service area'
+      ],
+      data: [30, 25, 20, 12, 8, 3, 2, 1],
+      colors: ['#4ECDC4', '#45B7D1', '#FF6B6B', '#F7DC6F', '#BB8FCE', '#85C1E9', '#58D68D', '#F8C471']
+    },
+    'voucher-issued-urgent-ff': {
+      title: 'Voucher Issued Urgent FF 原因分布',
+      labels: [
+        'Closure / No operation at the time',
+        'Fully booked / Out of stock',
+        'Other booking / redemption issues',
+        'Operator rejected the ticket',
+        'Booking connection issues',
+        'Not enough participants',
+        'Out of operator coverage / service area'
+      ],
+      data: [35, 28, 18, 12, 5, 2, 1],
+      colors: ['#45B7D1', '#4ECDC4', '#FF6B6B', '#BB8FCE', '#F7DC6F', '#58D68D', '#F8C471']
+    }
+  };
+
+  let currentFfMetric = 'fulfillment-failure';
+  let ffPieChart = null;
+
+  // 初始化饼图
+  function initFfChart() {
+    const ctx = document.getElementById('ffPieChart').getContext('2d');
+    ffPieChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: ffPieData[currentFfMetric].labels,
+        datasets: [{
+          data: ffPieData[currentFfMetric].data,
+          backgroundColor: ffPieData[currentFfMetric].colors,
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label(ctx) {
+                const label = ctx.label || '';
+                const val = ctx.parsed;
+                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                return `${label}: ${((val/total)*100).toFixed(1)}%`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 更新图例
+  function updateFfLegend() {
+    const container = document.getElementById('ff-legend-content');
+    const data = ffPieData[currentFfMetric];
+    container.innerHTML = '';
+    
+    const total = data.data.reduce((a, b) => a + b, 0);
+    
+    data.labels.forEach((label, i) => {
+      const percentage = ((data.data[i] / total) * 100).toFixed(1);
+      const item = document.createElement('div');
+      item.className = 'ff-legend-item';
+      item.innerHTML = `
+        <div class="ff-legend-color" style="background:${data.colors[i]}"></div>
+        <span class="ff-legend-label">${label}</span>
+        <strong class="ff-legend-value">${percentage}%</strong>
+      `;
+      container.appendChild(item);
+    });
+  }
+
+  // 切换指标
+  function switchFfMetric(key) {
+    currentFfMetric = key;
+    
+    // 更新选中状态
+    document.querySelectorAll('.ff-metric-selector').forEach(card => {
+      card.classList.remove('selected');
+    });
+    document.querySelector(`[data-ff-metric="${key}"]`).classList.add('selected');
+    
+    // 更新图表标题
+    document.getElementById('ff-chart-title').textContent = ffPieData[key].title;
+    
+    // 更新图表数据
+    ffPieChart.data.labels = ffPieData[key].labels;
+    ffPieChart.data.datasets[0].data = ffPieData[key].data;
+    ffPieChart.data.datasets[0].backgroundColor = ffPieData[key].colors;
+    ffPieChart.update();
+    
+    // 更新图例
+    updateFfLegend();
+  }
+
+  // 页面加载时初始化
+  document.addEventListener('DOMContentLoaded', () => {
+    // 如果已经有其他的DOMContentLoaded处理器，这里可能需要提取并合并到一个函数中
+    initFfChart();
+    updateFfLegend();
+    
+    // 默认选中第一个指标
+    document.querySelector('[data-ff-metric="fulfillment-failure"]').classList.add('selected');
+    
+    // 绑定点击事件
+    document.querySelectorAll('.ff-metric-selector').forEach(card => {
+      card.addEventListener('click', () => switchFfMetric(card.dataset.ffMetric));
+    });
+  });
+</script>
+
+
+<style>
+  /* IM指标卡片样式 */
+  .im-metric-selector {
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-top: 4px solid var(--primary);
+    transition: all 0.3s ease;
+    position: relative;
+  }
+  
+  .im-metric-selector:hover {
+    border-color: var(--primary-light);
+    border-top-color: var(--primary);
+    transform: translateY(-2px);
+  }
+  
+  .im-metric-selector.selected {
+    border-color: var(--primary);
+    border-top-color: var(--primary);
+    background: rgba(30, 136, 229, 0.05);
+    box-shadow: 0 6px 20px rgba(30, 136, 229, 0.15);
+  }
+  
+  .im-metric-selector.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    color: var(--primary);
+    font-weight: bold;
+    font-size: 16px;
+  }
+  
+  /* IM图表样式 */
+  .im-chart-wrapper {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .im-chart-doughnut {
+    width: 200px;
+    height: 200px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  
+  .im-legend {
+    flex: 1;
+    padding-left: 30px;
+    min-width: 200px;
+  }
+  
+  /* 响应式调整 */
+  @media (max-width: 768px) {
+    .im-chart-wrapper {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .im-chart-doughnut {
+      margin-bottom: 20px;
+    }
+    
+    .im-legend {
+      padding-left: 0;
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+  // IM 图表数据
+  const imChartData = {
+    'customers-served': {
+      title: 'Number of customers replied/served 趋势对比',
+      current: [2100, 2200, 2180, 2346, 2289, 2150],
+      previous: [1950, 2080, 2020, 2068, 2134, 1998],
+      label: '服务客户数'
+    },
+    'customers-percentage': {
+      title: '% of customers served 趋势对比',
+      current: [85.2, 86.1, 87.8, 87.5, 88.2, 86.9],
+      previous: [82.1, 83.4, 84.3, 84.3, 85.1, 83.7],
+      label: '服务率（%）'
+    },
+    'sla-24h-5min': {
+      title: '% IM Replied within SLA (in 24h) - 5mins 趋势对比',
+      current: [75.8, 76.9, 78.2, 78.2, 79.1, 77.3],
+      previous: [70.2, 71.8, 72.9, 72.9, 74.1, 71.5],
+      label: '5分钟SLA达标率（%）'
+    },
+    'sla-24h-60min': {
+      title: '% IM Replied within SLA (in 24h) - 60mins 趋势对比',
+      current: [92.3, 93.8, 94.6, 94.6, 95.2, 93.1],
+      previous: [89.8, 91.2, 92.5, 92.5, 93.1, 90.9],
+      label: '60分钟SLA达标率（%）'
+    },
+    'sla-overall-5min': {
+      title: '% IM Replied within SLA (overall) - 5mins 趋势对比',
+      current: [62.1, 63.8, 65.4, 65.4, 66.9, 63.2],
+      previous: [58.2, 59.6, 60.6, 60.6, 62.1, 58.9],
+      label: '总体5分钟SLA达标率（%）'
+    },
+    'sla-overall-60min': {
+      title: '% IM Replied within SLA (overall) - 60mins 趋势对比',
+      current: [87.2, 88.9, 89.7, 89.7, 90.8, 87.5],
+      previous: [83.5, 85.1, 85.8, 85.8, 87.2, 84.3],
+      label: '总体60分钟SLA达标率（%）'
+    },
+    'avg-reply-time': {
+      title: 'Average IM Reply Time 趋势对比',
+      current: [19.8, 18.2, 18.5, 18.5, 17.3, 19.1],
+      previous: [22.1, 21.3, 21.3, 21.3, 20.8, 22.5],
+      label: '平均回复时间（分钟）'
+    }
+  };
+
+  // 当前选中的IM指标
+  let currentImMetric = 'customers-served';
+  let imTrendChart = null;
+  let imDoughnutChart = null;
+
+  // 初始化IM图表
+  function initImCharts() {
+    // 趋势线图表
+    const trendCtx = document.getElementById('imTrendChart').getContext('2d');
+    imTrendChart = new Chart(trendCtx, {
+      type: 'line',
+      data: {
+        labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
+        datasets: [{
+          label: '本期数据',
+          data: imChartData[currentImMetric].current,
+          borderColor: '#1e88e5',
+          backgroundColor: 'rgba(30, 136, 229, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4
+        }, {
+          label: '同期数据',
+          data: imChartData[currentImMetric].previous,
+          borderColor: '#ff9800',
+          backgroundColor: 'rgba(255, 152, 0, 0.1)',
+          borderWidth: 2,
+          borderDash: [5, 5],
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: imChartData[currentImMetric].label
+            }
+          }
+        }
+      }
+    });
+
+    // 甜甜圈图表
+    const doughnutCtx = document.getElementById('imDoughnutChart').getContext('2d');
+    imDoughnutChart = new Chart(doughnutCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['5分钟内', '20分钟内', '60分钟内'],
+        datasets: [{
+          data: [42, 35, 23],
+          backgroundColor: ['#4CAF50', '#FF9800', '#F44336'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        cutout: '60%'
+      }
+    });
+  }
+
+  // 切换IM指标
+  function switchImMetric(metricKey) {
+    currentImMetric = metricKey;
+    
+    // 更新选中状态
+    document.querySelectorAll('.im-metric-selector').forEach(card => {
+      card.classList.remove('selected');
+    });
+    document.querySelector(`[data-im-metric="${metricKey}"]`).classList.add('selected');
+    
+    if (metricKey === 'reply-distribution') {
+      // 显示甜甜圈图
+      document.getElementById('im-trend-chart-container').style.display = 'none';
+      document.getElementById('im-doughnut-chart-container').style.display = 'block';
+      document.getElementById('im-chart-title').textContent = 'IM Reply Distribution';
+    } else {
+      // 显示趋势线图
+      document.getElementById('im-trend-chart-container').style.display = 'block';
+      document.getElementById('im-doughnut-chart-container').style.display = 'none';
+      document.getElementById('im-chart-title').textContent = imChartData[metricKey].title;
+      
+      // 更新趋势图数据
+      imTrendChart.data.datasets[0].data = imChartData[metricKey].current;
+      imTrendChart.data.datasets[1].data = imChartData[metricKey].previous;
+      imTrendChart.options.scales.y.title.text = imChartData[metricKey].label;
+      imTrendChart.update();
+    }
+  }
+
+  // 页面加载完成后初始化
+  document.addEventListener('DOMContentLoaded', function() {
+    initImCharts();
+    
+    // 默认选中第一个指标
+    document.querySelector('[data-im-metric="customers-served"]').classList.add('selected');
+    
+    // 绑定点击事件
+    document.querySelectorAll('.im-metric-selector').forEach(card => {
+      card.addEventListener('click', function() {
+        const metricKey = this.dataset.imMetric;
+        switchImMetric(metricKey);
+      });
+    });
+  });
+</script>
+
+<style>
+  /* Info box styling */
+  .info-box {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 20px;
+    padding: 12px;
+    background: rgba(30, 136, 229, 0.1);
+    border-radius: 6px;
+  }
+
+  /* Metric selector styling */
+  .metric-selector {
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-top: 4px solid var(--primary);
+    transition: all 0.3s ease;
+    position: relative;
+  }
+  
+  .metric-selector:hover {
+    border-color: var(--primary-light);
+    border-top-color: var(--primary);
+    transform: translateY(-2px);
+  }
+  
+  .metric-selector.selected {
+    border-color: var(--primary);
+    border-top-color: var(--primary);
+    background: rgba(30, 136, 229, 0.05);
+    box-shadow: 0 6px 20px rgba(30, 136, 229, 0.15);
+  }
+  
+  .metric-selector.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    color: var(--primary);
+    font-weight: bold;
+    font-size: 16px;
+  }
+  
+  /* Booking chart wrapper */
+  .booking-chart-wrapper {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    flex-wrap: nowrap;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .chart-doughnut {
+    width: 200px;
+    height: 200px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  
+  .booking-legend {
+    flex: 1;
+    padding-left: 30px;
+    min-width: 200px;
+  }
+  
+  /* Legend styling */
+  .legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  
+  .legend-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    flex: 1;
+  }
+  
+  .legend-value {
+    color: var(--text-primary);
+  }
+  
+  .legend-comparison {
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--light-bg);
+    border-radius: 6px;
+  }
+  
+  .legend-title {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+  
+  .legend-stats {
+    font-size: 14px;
+    color: var(--text-primary);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .booking-chart-wrapper {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .chart-doughnut {
+      margin-bottom: 20px;
+    }
+    
+    .booking-legend {
+      padding-left: 0;
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+  // 图表数据
+  const chartData = {
+    'confirmation-time': {
+      title: 'Average Confirmation Time 趋势对比',
+      current: [2.8, 2.6, 2.4, 2.3, 2.1, 2.0, 2.2, 2.3, 2.1, 2.0, 1.9, 2.3],
+      previous: [3.2, 3.0, 2.9, 2.8, 2.7, 2.6, 2.8, 2.9, 2.7, 2.6, 2.5, 2.8],
+      label: '确认时长（小时）'
+    },
+    'sla-miss': {
+      title: '% Bookings not confirmed within SLA 趋势对比',
+      current: [9.2, 8.8, 8.5, 8.2, 7.9, 7.6, 8.1, 8.2, 7.8, 7.5, 7.3, 8.2],
+      previous: [8.1, 7.8, 7.5, 7.0, 6.8, 6.5, 7.0, 7.1, 6.9, 6.7, 6.5, 7.0],
+      label: '未确认比例（%）'
+    },
+    'amount-loss': {
+      title: 'Total Booking Amount not confirmed within SLA 趋势对比',
+      current: [16200, 17800, 18200, 18640, 17900, 17200, 18100, 18640, 17800, 17100, 16800, 18640],
+      previous: [14800, 15200, 15600, 15430, 14900, 14600, 15200, 15430, 14800, 14500, 14200, 15430],
+      label: '损失金额（$）'
+    }
+  };
+
+  // 当前选中的指标
+  let currentMetric = 'confirmation-time';
+  let trendChart = null;
+  let doughnutChart = null;
+
+  // 初始化图表
+  function initCharts() {
+    // 趋势线图表
+    const trendCtx = document.getElementById('trendChart').getContext('2d');
+    trendChart = new Chart(trendCtx, {
+      type: 'line',
+      data: {
+        labels: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+        datasets: [{
+          label: '本期数据',
+          data: chartData[currentMetric].current,
+          borderColor: '#1e88e5',
+          backgroundColor: 'rgba(30, 136, 229, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4
+        }, {
+          label: '同期数据',
+          data: chartData[currentMetric].previous,
+          borderColor: '#ff9800',
+          backgroundColor: 'rgba(255, 152, 0, 0.1)',
+          borderWidth: 2,
+          borderDash: [5, 5],
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: chartData[currentMetric].label
+            }
+          }
+        }
+      }
+    });
+
+    // 甜甜圈图表
+    const doughnutCtx = document.getElementById('doughnutChart').getContext('2d');
+    doughnutChart = new Chart(doughnutCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['1小时内', '1-5小时', '5小时以上'],
+        datasets: [{
+          data: [45, 38, 17],
+          backgroundColor: ['#4CAF50', '#FF9800', '#F44336'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        cutout: '60%'
+      }
+    });
+  }
+
+  // 切换指标
+  function switchMetric(metricKey) {
+    currentMetric = metricKey;
+    
+    // 更新选中状态
+    document.querySelectorAll('.metric-selector').forEach(card => {
+      card.classList.remove('selected');
+    });
+    document.querySelector(`[data-metric="${metricKey}"]`).classList.add('selected');
+    
+    if (metricKey === 'time-distribution') {
+      // 显示甜甜圈图
+      document.getElementById('trend-chart-container').style.display = 'none';
+      document.getElementById('doughnut-chart-container').style.display = 'block';
+      document.getElementById('chart-title').textContent = 'Booking Confirmation Hours Distribution';
+    } else {
+      // 显示趋势线图
+      document.getElementById('trend-chart-container').style.display = 'block';
+      document.getElementById('doughnut-chart-container').style.display = 'none';
+      document.getElementById('chart-title').textContent = chartData[metricKey].title;
+      
+      // 更新趋势图数据
+      trendChart.data.datasets[0].data = chartData[metricKey].current;
+      trendChart.data.datasets[1].data = chartData[metricKey].previous;
+      trendChart.options.scales.y.title.text = chartData[metricKey].label;
+      trendChart.update();
+    }
+  }
+
+  // 页面加载完成后初始化
+  document.addEventListener('DOMContentLoaded', function() {
+    // 初始化图表
+    initCharts();
+    
+    // 默认选中第一个指标
+    document.querySelector('[data-metric="confirmation-time"]').classList.add('selected');
+    
+    // 绑定点击事件
+    document.querySelectorAll('.metric-selector').forEach(card => {
+      card.addEventListener('click', function() {
+        const metricKey = this.dataset.metric;
+        switchMetric(metricKey);
+      });
+    });
+  });
+</script>
+  </div>
+
+
+  <script>
+    // 全局工具函数
+    function formatNumber(num) {
+      return num.toLocaleString('en-US');
+    }
+    
+    function formatPercentage(value) {
+      return value.toFixed(1) + '%';
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Dashboard initialized');
+      
+      // 通用交互逻辑
+      document.querySelectorAll('.has-submenu').forEach(item => {
+        item.addEventListener('click', function(e) {
+          const submenu = this.nextElementSibling;
+          if (submenu && submenu.classList.contains('submenu')) {
+            submenu.classList.toggle('active');
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
